@@ -1,0 +1,21 @@
+2025-10-19 15:27:19,040 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 15:27:29,230 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 15:27:39,421 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 15:27:49,610 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 15:27:59,797 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 15:28:09,991 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 15:28:20,180 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 15:28:30,369 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 15:28:40,560 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 15:28:40,748 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 15:28:40,755 - __main__ - INFO - Received message from 5952524867 (Tgshaitaan): hello
+2025-10-19 15:28:41,949 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/sendChatAction "HTTP/1.1 200 OK"
+2025-10-19 15:28:42,356 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-19 15:28:42,357 - openai._base_client - INFO - Retrying request to /chat/completions in 0.475804 seconds
+2025-10-19 15:28:43,299 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-19 15:28:43,299 - openai._base_client - INFO - Retrying request to /chat/completions in 0.982490 seconds
+2025-10-19 15:28:44,967 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-19 15:28:44,967 - __main__ - ERROR - Error processing message: Error code: 429 - {'error': {'message': 'Rate limit reached for gpt-4o-mini in organization org-0AqgCQw8Bf8vpIdCXqclLPAF on tokens per min (TPM): Limit 100000, Used 99461, Requested 636. Please try again in 41m54.24s. Visit https://platform.openai.com/account/rate-limits to learn more. You can increase your rate limit by adding a payment method to your account at https://platform.openai.com/account/billing.', 'type': 'tokens', 'param': None, 'code': 'rate_limit_exceeded'}}
+2025-10-19 15:28:45,617 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/sendMessage "HTTP/1.1 200 OK"
+2025-10-19 15:28:50,945 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 15:29:01,134 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getUpdates "HTTP/1.1 200 OK"

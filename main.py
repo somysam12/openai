@@ -41,22 +41,47 @@ def escape_markdown(text):
 class TelegramChatBot:
     def __init__(self):
         self.telegram_token = os.getenv('TELEGRAM_BOT_TOKEN')
-        self.openai_api_key = os.getenv('OPENAI_API_KEY')
         self.admin_id = int(os.getenv('ADMIN_ID', '0'))
         
         if not self.telegram_token:
             raise ValueError("TELEGRAM_BOT_TOKEN not found in environment variables")
-        if not self.openai_api_key:
-            raise ValueError("OPENAI_API_KEY not found in environment variables")
         if self.admin_id == 0:
             logger.warning("ADMIN_ID not set! Admin features will not work.")
         
-        self.openai_client = OpenAI(api_key=self.openai_api_key)
+        # Load multiple API keys from environment variables
+        self.api_keys = []
+        for i in range(1, 20):  # Support up to 20 API keys
+            key = os.getenv(f'OPENAI_API_KEY_{i}')
+            if key:
+                self.api_keys.append(key)
+        
+        # Also check for single OPENAI_API_KEY (backward compatibility)
+        single_key = os.getenv('OPENAI_API_KEY')
+        if single_key and single_key not in self.api_keys:
+            self.api_keys.insert(0, single_key)
+        
+        if not self.api_keys:
+            raise ValueError("No OPENAI_API_KEY found! Set OPENAI_API_KEY_1, OPENAI_API_KEY_2, etc.")
+        
+        logger.info(f"✅ Loaded {len(self.api_keys)} API keys for rotation")
+        
+        # API key rotation setup
+        self.current_key_index = 0
+        self.openai_client = OpenAI(api_key=self.api_keys[self.current_key_index])
+        
         self.db_path = 'chat_history.db'
         self.active_admin_chats = {}
         self.user_to_admin_chat = {}
         self.admin_state = {}
         self.init_database()
+    
+    def rotate_api_key(self):
+        """Rotate to the next available API key"""
+        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+        new_key = self.api_keys[self.current_key_index]
+        self.openai_client = OpenAI(api_key=new_key)
+        logger.warning(f"🔄 Rotated to API key #{self.current_key_index + 1} (out of {len(self.api_keys)} keys)")
+        return self.current_key_index + 1
     
     def init_database(self):
         conn = sqlite3.connect(self.db_path)
@@ -916,14 +941,43 @@ class TelegramChatBot:
                 
                 messages.append({"role": "user", "content": user_message})
                 
-                response = self.openai_client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=messages,
-                    max_tokens=500,
-                    temperature=0.7
-                )
+                # Try API call with automatic key rotation on rate limit
+                max_attempts = len(self.api_keys)
+                ai_response = None
                 
-                ai_response = response.choices[0].message.content
+                for attempt in range(max_attempts):
+                    try:
+                        response = self.openai_client.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=messages,
+                            max_tokens=500,
+                            temperature=0.7
+                        )
+                        ai_response = response.choices[0].message.content
+                        break  # Success! Exit loop
+                        
+                    except Exception as api_error:
+                        error_str = str(api_error)
+                        
+                        # Check if it's a rate limit error (429)
+                        if "429" in error_str or "rate limit" in error_str.lower():
+                            logger.warning(f"⚠️ Rate limit hit on API key #{self.current_key_index + 1}")
+                            
+                            if attempt < max_attempts - 1:
+                                # Rotate to next key and retry
+                                key_num = self.rotate_api_key()
+                                logger.info(f"🔄 Retrying with API key #{key_num}...")
+                                continue
+                            else:
+                                # All keys exhausted
+                                logger.error("❌ All API keys have reached rate limit!")
+                                raise Exception("All API keys exhausted. Please wait for rate limits to reset.")
+                        else:
+                            # Different error, don't rotate
+                            raise api_error
+                
+                if not ai_response:
+                    raise Exception("Failed to get response from OpenAI")
                 
                 self.save_chat_history(user.id, user.username or "Unknown", user_message, ai_response)
                 
