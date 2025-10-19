@@ -58,6 +58,10 @@ args = "Telegram Bot"
 task = "workflow.run"
 args = "Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Personal Account Bot"
+
 [[workflows.workflow]]
 name = "Telegram Bot"
 author = "agent"
@@ -80,3 +84,14 @@ outputType = "webview"
 task = "shell.exec"
 args = "yes | npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Personal Account Bot"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python personal_account_autoreply.py"
+
+[workflows.workflow.metadata]
+outputType = "console"

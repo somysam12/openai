@@ -67,6 +67,10 @@ class PersonalAccountBot:
         # Rate limiting: Max replies per user
         self.reply_cooldown_hours = int(os.getenv('REPLY_COOLDOWN_HOURS', '0'))
         
+        # Auto-reply message
+        self.auto_reply_message = os.getenv('AUTO_REPLY_MESSAGE', 
+            "Namaste! Main abhi busy hoon. Aap ka message dekha hai, jald hi reply karunga. 🙏")
+        
         logger.info(f"Personal Account Bot initialized:")
         logger.info(f"  - AI Responses: {'✅' if self.use_ai_responses and self.openai_client else '❌'}")
         logger.info(f"  - Keywords: {'✅' if self.use_keywords else '❌'}")
