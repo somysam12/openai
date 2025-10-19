@@ -74,6 +74,11 @@ def run_personal_bot():
         logger.info("👤 STARTING PERSONAL ACCOUNT BOT (Pyrogram)")
         logger.info("=" * 60)
         
+        # Fix for Python 3.13: Create new event loop for this thread
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
         from personal_account_autoreply import PersonalAccountBot
         bot = PersonalAccountBot()
         logger.info("✅ Personal bot initialized successfully")
