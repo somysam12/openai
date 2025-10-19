@@ -208,7 +208,7 @@ class TelegramChatBot:
     def is_admin(self, user_id: int) -> bool:
         return user_id == self.admin_id
     
-    def get_automated_message(self, message_type: str) -> str:
+    def get_automated_message(self, message_type: str):
         """Get automated message by type"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -297,22 +297,23 @@ class TelegramChatBot:
                 InlineKeyboardButton("💬 Message User", callback_data="admin_message_user")
             ],
             [
-                InlineKeyboardButton("📝 Auto Messages", callback_data="admin_auto_messages"),
+                InlineKeyboardButton("🔑 Keywords", callback_data="admin_keywords"),
                 InlineKeyboardButton("🔑 API Key Stats", callback_data="admin_api_stats")
             ],
             [
-                InlineKeyboardButton("👥 View Users", callback_data="admin_view_users"),
-                InlineKeyboardButton("📂 View User Chats", callback_data="admin_view_user_chats")
+                InlineKeyboardButton("📝 Auto Messages", callback_data="admin_auto_messages"),
+                InlineKeyboardButton("👥 View Users", callback_data="admin_view_users")
             ],
             [
-                InlineKeyboardButton("🗑️ Delete Chats", callback_data="admin_delete_chats_menu"),
-                InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast")
+                InlineKeyboardButton("📂 View User Chats", callback_data="admin_view_user_chats"),
+                InlineKeyboardButton("🗑️ Delete Chats", callback_data="admin_delete_chats_menu")
             ],
             [
-                InlineKeyboardButton("🏘️ Group Sessions", callback_data="admin_group_sessions"),
-                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session")
+                InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
+                InlineKeyboardButton("🏘️ Group Sessions", callback_data="admin_group_sessions")
             ],
             [
+                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session"),
                 InlineKeyboardButton("🔄 Refresh Panel", callback_data="admin_refresh")
             ]
         ]
@@ -384,14 +385,14 @@ class TelegramChatBot:
         
         return deleted > 0
     
-    def save_chat_history(self, user_id: int, username: str, message: str, response: str, chat_type: str = 'dm', chat_id: int = None):
+    def save_chat_history(self, user_id: int, username: str, message: str, response: str, chat_type: str = 'dm', chat_id: int | None = None):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
             INSERT INTO chat_history (user_id, username, message, response, message_role, chat_type, chat_id)
             VALUES (?, ?, ?, ?, 'user', ?, ?)
-        ''', (user_id, username, message, response, chat_type, chat_id or user_id))
+        ''', (user_id, username, message, response, chat_type, chat_id if chat_id is not None else user_id))
         
         conn.commit()
         conn.close()
@@ -525,6 +526,58 @@ class TelegramChatBot:
         conn.close()
         
         return deleted
+    
+    def check_keyword_match(self, message: str):
+        """Check if message contains any keyword and return response"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT keyword, response FROM group_keywords')
+        keywords = cursor.fetchall()
+        conn.close()
+        
+        message_lower = message.lower()
+        
+        for keyword, response in keywords:
+            if keyword.lower() in message_lower:
+                logger.info(f"Keyword matched: '{keyword}' in message")
+                return response
+        
+        return None
+    
+    def add_keyword(self, keyword: str, response: str):
+        """Add a new keyword with its response"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('INSERT INTO group_keywords (keyword, response) VALUES (?, ?)', (keyword, response))
+        
+        conn.commit()
+        conn.close()
+    
+    def get_all_keywords(self):
+        """Get all keywords"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT id, keyword, response, created_at FROM group_keywords ORDER BY created_at DESC')
+        keywords = cursor.fetchall()
+        conn.close()
+        
+        return keywords
+    
+    def delete_keyword(self, keyword_id: int):
+        """Delete a keyword by ID"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM group_keywords WHERE id = ?', (keyword_id,))
+        deleted = cursor.rowcount
+        
+        conn.commit()
+        conn.close()
+        
+        return deleted > 0
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
@@ -845,6 +898,74 @@ class TelegramChatBot:
                 parse_mode='Markdown'
             )
         
+        elif data == "admin_keywords":
+            keyboard = [
+                [InlineKeyboardButton("📝 View Keywords", callback_data="admin_view_keywords")],
+                [InlineKeyboardButton("➕ Add Keyword", callback_data="admin_add_keyword")],
+                [InlineKeyboardButton("🗑️ Delete Keyword", callback_data="admin_delete_keyword")],
+                [InlineKeyboardButton("« Back", callback_data="admin_refresh")]
+            ]
+            await query.edit_message_text(
+                "🔑 *Keyword Management*\n\n"
+                "Keywords work in both groups and DMs!\n\n"
+                "When someone sends a message containing a keyword, bot will automatically reply with the saved response.\n\n"
+                "Choose an option:",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_view_keywords":
+            keywords = self.get_all_keywords()
+            if keywords:
+                kw_text = "📝 *All Keywords:*\n\n"
+                for idx, (kid, keyword, response, created) in enumerate(keywords, 1):
+                    resp_preview = response[:80] + "..." if len(response) > 80 else response
+                    kw_text += f"{idx}. *Keyword:* `{keyword}`\n"
+                    kw_text += f"   *Response:* {resp_preview}\n\n"
+                kw_text += f"\n*Total: {len(keywords)} keywords*"
+            else:
+                kw_text = "⚠️ *No keywords set yet!*\n\nClick 'Add Keyword' to create one."
+            
+            await query.edit_message_text(
+                kw_text,
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("« Back", callback_data="admin_keywords")]]),
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_add_keyword":
+            self.admin_state[user_id] = "waiting_keyword"
+            await query.edit_message_text(
+                "➕ *Add New Keyword*\n\n"
+                "Send the keyword you want to detect.\n\n"
+                "*Example:* `price` or `contact` or `website`\n\n"
+                "⚡ Bot will respond whenever this word appears in a message!\n\n"
+                "Send /cancel to cancel.",
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_delete_keyword":
+            keywords = self.get_all_keywords()
+            if not keywords:
+                await query.edit_message_text(
+                    "⚠️ *No keywords to delete!*\n\nAdd some keywords first.",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("« Back", callback_data="admin_keywords")]]),
+                    parse_mode='Markdown'
+                )
+                return
+            
+            kw_text = "🗑️ *Delete Keyword*\n\n"
+            for idx, (kid, keyword, response, created) in enumerate(keywords, 1):
+                kw_text += f"{idx}. `{keyword}`\n"
+            kw_text += f"\n*Total: {len(keywords)} keywords*\n\n"
+            kw_text += "Send the number (1, 2, 3...) of the keyword you want to delete.\n\n"
+            kw_text += "Send /cancel to cancel."
+            
+            self.admin_state[user_id] = "waiting_delete_keyword"
+            await query.edit_message_text(
+                kw_text,
+                parse_mode='Markdown'
+            )
+        
         elif data == "admin_api_stats":
             stats = self.get_api_key_stats()
             stats_text = "🔑 *API Key Statistics*\n\n"
@@ -1058,6 +1179,75 @@ class TelegramChatBot:
                     )
                     return
             
+            elif state == "waiting_keyword":
+                keyword = user_message.strip()
+                self.admin_state[user.id] = f"waiting_keyword_response:{keyword}"
+                await update.message.reply_text(
+                    f"✅ *Keyword Set:* `{keyword}`\n\n"
+                    f"Now send the response you want bot to send when this keyword is detected.\n\n"
+                    f"*Example:* Our product costs ₹500/month with premium support!\n\n"
+                    f"Send /cancel to cancel.",
+                    parse_mode='Markdown'
+                )
+                logger.info(f"Admin {user.id} setting keyword: {keyword}")
+                return
+            
+            elif state.startswith("waiting_keyword_response:"):
+                keyword = state.split(":", 1)[1]
+                response_text = user_message
+                self.add_keyword(keyword, response_text)
+                del self.admin_state[user.id]
+                
+                await update.message.reply_text(
+                    f"✅ *Keyword Added Successfully!*\n\n"
+                    f"*Keyword:* `{keyword}`\n"
+                    f"*Response:* {response_text[:100]}{'...' if len(response_text) > 100 else ''}\n\n"
+                    f"Bot will now respond with this message when '{keyword}' is detected!",
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='Markdown'
+                )
+                logger.info(f"Admin {user.id} added keyword '{keyword}' with response")
+                return
+            
+            elif state == "waiting_delete_keyword":
+                try:
+                    keyword_num = int(user_message.strip())
+                    all_keywords = self.get_all_keywords()
+                    
+                    if keyword_num < 1 or keyword_num > len(all_keywords):
+                        await update.message.reply_text(
+                            f"❌ Invalid number! Please send a number between 1 and {len(all_keywords)}.",
+                            reply_markup=self.get_admin_keyboard()
+                        )
+                        return
+                    
+                    keyword_id = all_keywords[keyword_num - 1][0]
+                    deleted_keyword = all_keywords[keyword_num - 1][1]
+                    
+                    if self.delete_keyword(keyword_id):
+                        del self.admin_state[user.id]
+                        await update.message.reply_text(
+                            f"✅ *Keyword Deleted!*\n\n"
+                            f"Deleted: `{deleted_keyword}`\n\n"
+                            f"Remaining: {len(all_keywords) - 1} keywords",
+                            reply_markup=self.get_admin_keyboard(),
+                            parse_mode='Markdown'
+                        )
+                        logger.info(f"Admin {user.id} deleted keyword '{deleted_keyword}'")
+                    else:
+                        await update.message.reply_text(
+                            "❌ Failed to delete keyword!",
+                            reply_markup=self.get_admin_keyboard()
+                        )
+                    return
+                    
+                except ValueError:
+                    await update.message.reply_text(
+                        "❌ Please send a valid number!",
+                        reply_markup=self.get_admin_keyboard()
+                    )
+                    return
+            
             elif state == "waiting_broadcast":
                 users = self.get_all_users()
                 sent_count = 0
@@ -1228,6 +1418,13 @@ class TelegramChatBot:
                 except Exception as e:
                     logger.error(f"Failed to forward group message to admin: {e}")
         
+        # Check for keyword matches (works in both groups and DMs)
+        keyword_response = self.check_keyword_match(user_message)
+        if keyword_response:
+            logger.info(f"Keyword match found! Sending response to {'group' if is_group else 'DM'}")
+            await update.message.reply_text(keyword_response)
+            return
+        
         is_reply_to_bot = False
         
         if is_group:
@@ -1282,64 +1479,64 @@ class TelegramChatBot:
                 system_prompt += f"⚡ Jo bhi user poochu, knowledge base ko thoroughly check karo aur relevant information extract karke clear answer do!"
             else:
                 system_prompt += "\n\n💬 Normal friendly conversation karo kyunki abhi knowledge base empty hai."
-                
-                messages = [
-                    {
-                        "role": "system",
-                        "content": system_prompt
-                    }
-                ]
-                
-                for prev_msg, prev_resp in recent_history:
-                    messages.append({"role": "user", "content": prev_msg})
-                    messages.append({"role": "assistant", "content": prev_resp})
-                
-                messages.append({"role": "user", "content": user_message})
-                
-                # Try API call with automatic key rotation on rate limit
-                max_attempts = len(self.api_keys)
-                ai_response = None
-                
-                for attempt in range(max_attempts):
-                    try:
-                        response = self.openai_client.chat.completions.create(
-                            model="gpt-4o-mini",
-                            messages=messages,
-                            max_tokens=500,
-                            temperature=0.7
-                        )
-                        ai_response = response.choices[0].message.content
-                        self.track_api_key_usage(self.current_key_index, is_rate_limit=False)
-                        break  # Success! Exit loop
+            
+            messages = [
+                {
+                    "role": "system",
+                    "content": system_prompt
+                }
+            ]
+            
+            for prev_msg, prev_resp in recent_history:
+                messages.append({"role": "user", "content": prev_msg})
+                messages.append({"role": "assistant", "content": prev_resp})
+            
+            messages.append({"role": "user", "content": user_message})
+            
+            # Try API call with automatic key rotation on rate limit
+            max_attempts = len(self.api_keys)
+            ai_response = None
+            
+            for attempt in range(max_attempts):
+                try:
+                    response = self.openai_client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=messages,
+                        max_tokens=500,
+                        temperature=0.7
+                    )
+                    ai_response = response.choices[0].message.content
+                    self.track_api_key_usage(self.current_key_index, is_rate_limit=False)
+                    break  # Success! Exit loop
+                    
+                except Exception as api_error:
+                    error_str = str(api_error)
+                    
+                    # Check if it's a rate limit error (429)
+                    if "429" in error_str or "rate limit" in error_str.lower():
+                        logger.warning(f"⚠️ Rate limit hit on API key #{self.current_key_index + 1}")
+                        self.track_api_key_usage(self.current_key_index, is_rate_limit=True)
                         
-                    except Exception as api_error:
-                        error_str = str(api_error)
-                        
-                        # Check if it's a rate limit error (429)
-                        if "429" in error_str or "rate limit" in error_str.lower():
-                            logger.warning(f"⚠️ Rate limit hit on API key #{self.current_key_index + 1}")
-                            self.track_api_key_usage(self.current_key_index, is_rate_limit=True)
-                            
-                            if attempt < max_attempts - 1:
-                                # Rotate to next key and retry
-                                key_num = self.rotate_api_key()
-                                logger.info(f"🔄 Retrying with API key #{key_num}...")
-                                continue
-                            else:
-                                # All keys exhausted
-                                logger.error("❌ All API keys have reached rate limit!")
-                                raise Exception("All API keys exhausted. Please wait for rate limits to reset.")
+                        if attempt < max_attempts - 1:
+                            # Rotate to next key and retry
+                            key_num = self.rotate_api_key()
+                            logger.info(f"🔄 Retrying with API key #{key_num}...")
+                            continue
                         else:
-                            # Different error, don't rotate
-                            raise api_error
-                
-                if not ai_response:
-                    raise Exception("Failed to get response from OpenAI")
-                
-                self.save_chat_history(user.id, user.username or "Unknown", user_message, ai_response)
-                
-                await update.message.reply_text(ai_response)
-                logger.info(f"Sent AI response to {user.id}")
+                            # All keys exhausted
+                            logger.error("❌ All API keys have reached rate limit!")
+                            raise Exception("All API keys exhausted. Please wait for rate limits to reset.")
+                    else:
+                        # Different error, don't rotate
+                        raise api_error
+            
+            if not ai_response:
+                raise Exception("Failed to get response from OpenAI")
+            
+            self.save_chat_history(user.id, user.username or "Unknown", user_message, ai_response)
+            
+            await update.message.reply_text(ai_response)
+            logger.info(f"Sent AI response to {user.id}")
             
         except Exception as e:
             logger.error(f"Error processing message: {e}")
