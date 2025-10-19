@@ -3,14 +3,3 @@ openai==1.58.1
 flask==3.0.0
 pyrogram
 tgcrypto
-flask==3.0.0
-openai==1.58.1
-pyrogram
-python-telegram-bot==21.0.1
-telegram
-tgcrypto
-flask
-openai
-pyrogram
-python-telegram-bot
-tgcrypto
