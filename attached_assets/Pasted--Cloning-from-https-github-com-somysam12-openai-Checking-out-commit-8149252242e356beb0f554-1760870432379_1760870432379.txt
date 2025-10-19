@@ -1,0 +1,90 @@
+==> Cloning from https://github.com/somysam12/openai
+==> Checking out commit 8149252242e356beb0f5546934dcb97c843a99de in branch main
+==> Installing Python version 3.13.4...
+==> Using Python version 3.13.4 (default)
+==> Docs on specifying a Python version: https://render.com/docs/python-version
+==> Using Poetry version 2.1.3 (default)
+==> Docs on specifying a Poetry version: https://render.com/docs/poetry-version
+==> Running build command 'pip install -r requirements.txt'...
+Collecting python-telegram-bot==21.0.1 (from -r requirements.txt (line 1))
+  Downloading python_telegram_bot-21.0.1-py3-none-any.whl.metadata (15 kB)
+Collecting openai==1.58.1 (from -r requirements.txt (line 2))
+  Downloading openai-1.58.1-py3-none-any.whl.metadata (27 kB)
+Collecting httpx~=0.27 (from python-telegram-bot==21.0.1->-r requirements.txt (line 1))
+  Downloading httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+Collecting anyio<5,>=3.5.0 (from openai==1.58.1->-r requirements.txt (line 2))
+  Downloading anyio-4.11.0-py3-none-any.whl.metadata (4.1 kB)
+Collecting distro<2,>=1.7.0 (from openai==1.58.1->-r requirements.txt (line 2))
+  Downloading distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
+Collecting jiter<1,>=0.4.0 (from openai==1.58.1->-r requirements.txt (line 2))
+  Downloading jiter-0.11.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (5.2 kB)
+Collecting pydantic<3,>=1.9.0 (from openai==1.58.1->-r requirements.txt (line 2))
+  Downloading pydantic-2.12.3-py3-none-any.whl.metadata (87 kB)
+Collecting sniffio (from openai==1.58.1->-r requirements.txt (line 2))
+  Downloading sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+Collecting tqdm>4 (from openai==1.58.1->-r requirements.txt (line 2))
+  Downloading tqdm-4.67.1-py3-none-any.whl.metadata (57 kB)
+Collecting typing-extensions<5,>=4.11 (from openai==1.58.1->-r requirements.txt (line 2))
+  Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting idna>=2.8 (from anyio<5,>=3.5.0->openai==1.58.1->-r requirements.txt (line 2))
+  Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+Collecting certifi (from httpx~=0.27->python-telegram-bot==21.0.1->-r requirements.txt (line 1))
+  Downloading certifi-2025.10.5-py3-none-any.whl.metadata (2.5 kB)
+Collecting httpcore==1.* (from httpx~=0.27->python-telegram-bot==21.0.1->-r requirements.txt (line 1))
+  Downloading httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+Collecting h11>=0.16 (from httpcore==1.*->httpx~=0.27->python-telegram-bot==21.0.1->-r requirements.txt (line 1))
+  Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+Collecting annotated-types>=0.6.0 (from pydantic<3,>=1.9.0->openai==1.58.1->-r requirements.txt (line 2))
+  Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.41.4 (from pydantic<3,>=1.9.0->openai==1.58.1->-r requirements.txt (line 2))
+  Downloading pydantic_core-2.41.4-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.3 kB)
+Collecting typing-inspection>=0.4.2 (from pydantic<3,>=1.9.0->openai==1.58.1->-r requirements.txt (line 2))
+  Downloading typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+Downloading python_telegram_bot-21.0.1-py3-none-any.whl (604 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 604.4/604.4 kB 1.5 MB/s eta 0:00:00
+Downloading openai-1.58.1-py3-none-any.whl (454 kB)
+Downloading anyio-4.11.0-py3-none-any.whl (109 kB)
+Downloading distro-1.9.0-py3-none-any.whl (20 kB)
+Downloading httpx-0.28.1-py3-none-any.whl (73 kB)
+Downloading httpcore-1.0.9-py3-none-any.whl (78 kB)
+Downloading jiter-0.11.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (356 kB)
+Downloading pydantic-2.12.3-py3-none-any.whl (462 kB)
+Downloading pydantic_core-2.41.4-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 7.1 MB/s eta 0:00:00
+Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+Downloading idna-3.11-py3-none-any.whl (71 kB)
+Downloading sniffio-1.3.1-py3-none-any.whl (10 kB)
+Downloading tqdm-4.67.1-py3-none-any.whl (78 kB)
+Downloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+Downloading certifi-2025.10.5-py3-none-any.whl (163 kB)
+Installing collected packages: typing-extensions, tqdm, sniffio, jiter, idna, h11, distro, certifi, annotated-types, typing-inspection, pydantic-core, httpcore, anyio, pydantic, httpx, python-telegram-bot, openai
+Successfully installed annotated-types-0.7.0 anyio-4.11.0 certifi-2025.10.5 distro-1.9.0 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 idna-3.11 jiter-0.11.1 openai-1.58.1 pydantic-2.12.3 pydantic-core-2.41.4 python-telegram-bot-21.0.1 sniffio-1.3.1 tqdm-4.67.1 typing-extensions-4.15.0 typing-inspection-0.4.2
+[notice] A new release of pip is available: 25.1.1 -> 25.2
+[notice] To update, run: pip install --upgrade pip
+==> Requesting Node.js version >=20.9.0
+==> Using Node.js version 25.0.0 via /opt/render/project/src/package.json
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Uploading build...
+==> Uploaded in 9.7s. Compression took 5.9s
+==> Build successful 🎉
+==> Deploying...
+==> Running 'python main.py'
+2025-10-19 10:39:48,364 - __main__ - ERROR - Failed to start bot: TELEGRAM_BOT_TOKEN not found in environment variables
+Traceback (most recent call last):
+  File "/opt/render/project/src/main.py", line 574, in <module>
+    bot = TelegramChatBot()
+  File "/opt/render/project/src/main.py", line 30, in __init__
+    raise ValueError("TELEGRAM_BOT_TOKEN not found in environment variables")
+ValueError: TELEGRAM_BOT_TOKEN not found in environment variables
+==> Exited with status 1
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'python main.py'
+2025-10-19 10:40:03,397 - __main__ - ERROR - Failed to start bot: TELEGRAM_BOT_TOKEN not found in environment variables
+Traceback (most recent call last):
+  File "/opt/render/project/src/main.py", line 574, in <module>
+    bot = TelegramChatBot()
+  File "/opt/render/project/src/main.py", line 30, in __init__
+    raise ValueError("TELEGRAM_BOT_TOKEN not found in environment variables")
+ValueError: TELEGRAM_BOT_TOKEN not found in environment variables
