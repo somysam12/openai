@@ -68,10 +68,14 @@ The SQLite database (`chat_history.db`) will be stored on Render's disk. However
 - This ensures data persists across restarts
 
 ### Health Checks
-Render expects HTTP responses. Since this is a Telegram bot (not a web server):
-- Go to **Settings** → **Health Check Path**
-- Set to: `/health` (we'll add this endpoint)
-- OR disable health checks entirely
+✅ **Health check endpoint is already configured!** 
+
+The bot now includes a Flask web server that responds to Render's health checks:
+- Health check endpoint: `/health`
+- Root endpoint: `/`
+- Default port: 10000 (Render will automatically set the PORT environment variable)
+
+**No additional configuration needed!** Render will automatically detect and use the `/health` endpoint.
 
 ### Keeping Bot Alive
 Free tier instances sleep after 15 minutes of inactivity. Your Telegram bot uses polling, so it should stay active when receiving messages.
