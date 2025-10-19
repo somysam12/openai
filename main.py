@@ -3,16 +3,34 @@ import os
 import logging
 import sqlite3
 import re
+import threading
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from openai import OpenAI
+from flask import Flask
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+app = Flask(__name__)
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
+@app.route('/health')
+def health_check():
+    return {'status': 'ok', 'message': 'Bot is running'}, 200
+
+@app.route('/')
+def home():
+    return {'status': 'ok', 'message': 'Telegram Bot is active'}, 200
+
+def run_flask():
+    port = int(os.getenv('PORT', 10000))
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
 
 def escape_markdown(text):
     if not text:
@@ -571,6 +589,10 @@ class TelegramChatBot:
 
 if __name__ == '__main__':
     try:
+        flask_thread = threading.Thread(target=run_flask, daemon=True)
+        flask_thread.start()
+        logger.info("Flask health check server started")
+        
         bot = TelegramChatBot()
         bot.run()
     except KeyboardInterrupt:
