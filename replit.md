@@ -10,6 +10,25 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## October 19, 2025 - Pyrogram Bot Threading Fix & Deployment Ready
+
+**Fix**: Fixed threading issue in Pyrogram personal account bot for Render deployment.
+
+**Changes**:
+- Fixed "signal only works in main thread" error in `personal_account_autoreply.py`
+- Updated bot to use asyncio event loop properly in daemon threads
+- Session file now committed to git for easy Render deployment
+- Created deployment guide: `RENDER_PYROGRAM_DEPLOY.md`
+- Updated `.gitignore` to allow session file commit
+
+**Deployment**:
+- Both bots (Main + Pyrogram) run together via `start_both_bots.py`
+- Requires environment variables: TELEGRAM_API_ID, TELEGRAM_API_HASH
+- Session file auto-loaded from repository
+- Ready for Render free tier deployment
+
+**Status**: ✅ Ready to deploy
+
 ## October 19, 2025 - Enhanced Admin Panel: Automated Messages & API Key Management
 
 **Feature**: Complete overhaul of bot behavior with automated messages management and API key tracking.

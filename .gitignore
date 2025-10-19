@@ -18,9 +18,9 @@ venv/
 ENV/
 env/
 
-# Session files (DON'T commit these - they're login credentials!)
-*.session
-*.session-journal
+# Session files - Committing for Render deployment
+# *.session
+# *.session-journal
 
 # Replit
 .local/
