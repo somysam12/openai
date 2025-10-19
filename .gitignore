@@ -6,3 +6,34 @@ dist
 *.db
 *.db-*
 .DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# Session files (DON'T commit these - they're login credentials!)
+*.session
+*.session-journal
+
+# Replit
+.local/
+.cache/
+.upm/
+.config/
+
+# Temporary files
+attached_assets/
+*.log
+*.tmp
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
