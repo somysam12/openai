@@ -66,8 +66,9 @@ class TelegramChatBot:
         logger.info(f"✅ Loaded {len(self.api_keys)} API keys for rotation")
         
         # API key rotation setup
+        # max_retries=0 disables OpenAI's built-in retry for instant key switching
         self.current_key_index = 0
-        self.openai_client = OpenAI(api_key=self.api_keys[self.current_key_index])
+        self.openai_client = OpenAI(api_key=self.api_keys[self.current_key_index], max_retries=0)
         
         self.db_path = 'chat_history.db'
         self.active_admin_chats = {}
@@ -79,7 +80,8 @@ class TelegramChatBot:
         """Rotate to the next available API key"""
         self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
         new_key = self.api_keys[self.current_key_index]
-        self.openai_client = OpenAI(api_key=new_key)
+        # max_retries=0 disables OpenAI's built-in retry mechanism for instant switching
+        self.openai_client = OpenAI(api_key=new_key, max_retries=0)
         logger.warning(f"🔄 Rotated to API key #{self.current_key_index + 1} (out of {len(self.api_keys)} keys)")
         return self.current_key_index + 1
     
