@@ -106,6 +106,7 @@ class TelegramChatBot:
             CREATE TABLE IF NOT EXISTS group_keywords (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 keyword TEXT NOT NULL,
+                response TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -275,10 +276,16 @@ class TelegramChatBot:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute('SELECT keyword, response FROM group_keywords')
-        results = cursor.fetchall()
-        conn.close()
+        try:
+            cursor.execute('SELECT keyword, response FROM group_keywords')
+            results = cursor.fetchall()
+        except sqlite3.OperationalError:
+            cursor.execute('ALTER TABLE group_keywords ADD COLUMN response TEXT')
+            conn.commit()
+            cursor.execute('SELECT keyword, response FROM group_keywords')
+            results = cursor.fetchall()
         
+        conn.close()
         return results
     
     def add_group_keyword(self, keyword: str, response: str = None):
