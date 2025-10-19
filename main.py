@@ -615,9 +615,9 @@ class TelegramChatBot:
                     keyword_text += f"{idx}\\. {escaped_kw}\n"
                     if resp:
                         escaped_resp = escape_markdown(resp[:50] + "..." if len(resp) > 50 else resp)
-                        keyword_text += f"   Response: {escaped_resp}\n"
+                        keyword_text += f"   📝 Direct: {escaped_resp}\n"
                     else:
-                        keyword_text += f"   Response: AI generated\n"
+                        keyword_text += f"   ✨ AI \\+ Knowledge Base\n"
                 keyword_text += f"\n*Total: {len(keywords)} keywords*\n\n"
                 keyword_text += "Bot will respond in groups when these keywords appear\\."
                 await query.edit_message_text(
@@ -641,11 +641,13 @@ class TelegramChatBot:
                 "Send in this format:\n"
                 "`keyword | custom response`\n\n"
                 "*Example 1:* `help | Bot help: Contact @tgshaitaan for support!`\n"
-                "*Example 2:* `price` (AI will generate response)\n\n"
+                "→ Bot sends exact response\n\n"
+                "*Example 2:* `price` (AI uses Knowledge Base) ✨\n"
+                "→ Bot searches knowledge for 'price' and replies intelligently\n\n"
                 "📌 *Note:* \n"
                 "- Keywords are case-insensitive\n"
                 "- Use `|` to separate keyword and response\n"
-                "- Without `|`, AI will generate response\n\n"
+                "- Without `|`, AI uses Knowledge Base to reply! 🧠\n\n"
                 "Send /cancel to cancel.",
                 parse_mode='Markdown'
             )
@@ -796,11 +798,17 @@ class TelegramChatBot:
                 self.add_group_keyword(keyword, response)
                 del self.admin_state[user.id]
                 
-                response_info = f"Custom: {response[:50]}..." if response and len(response) > 50 else (response if response else "AI generated")
+                if response:
+                    response_info = f"Custom: {response[:50]}..." if len(response) > 50 else response
+                    response_type = "📝 Direct Response"
+                else:
+                    response_info = "AI + Knowledge Base 🧠"
+                    response_type = "✨ Intelligent Response"
                 
                 await update.message.reply_text(
                     f"✅ *Keyword Added!*\n\n"
-                    f"Keyword: {keyword}\n"
+                    f"Keyword: `{keyword}`\n"
+                    f"Type: {response_type}\n"
                     f"Response: {response_info}\n\n"
                     f"Bot will now respond in groups when this word appears!",
                     reply_markup=self.get_admin_keyboard(),
@@ -878,7 +886,8 @@ class TelegramChatBot:
         is_group = chat_type in ['group', 'supergroup']
         
         is_reply_to_bot = False
-        custom_response = None
+        keyword_detected = None
+        use_knowledge_for_keyword = False
         
         if is_group:
             bot_info = await context.bot.get_me()
@@ -891,9 +900,13 @@ class TelegramChatBot:
                     logger.info(f"Group message is reply to bot from {user.id}")
             
             keyword, response = self.check_keyword_match(user_message)
-            if response:
-                custom_response = response
-                logger.info(f"Keyword matched: {keyword}, using custom response")
+            if keyword:
+                keyword_detected = keyword
+                if response:
+                    logger.info(f"Keyword matched: {keyword}, using direct response: {response[:50]}")
+                else:
+                    use_knowledge_for_keyword = True
+                    logger.info(f"Keyword matched: {keyword}, will use AI + knowledge")
             
             if not self.should_respond_in_group(user_message, bot_username, is_reply_to_bot):
                 logger.info(f"Ignoring group message (no keyword/tag/reply): {user_message[:50]}")
@@ -902,11 +915,12 @@ class TelegramChatBot:
         await update.message.chat.send_action("typing")
         
         try:
-            if custom_response:
-                final_response = custom_response
+            if keyword_detected and not use_knowledge_for_keyword:
+                keyword, response = self.check_keyword_match(user_message)
+                final_response = response
                 self.save_chat_history(user.id, user.username or "Unknown", user_message, final_response)
                 await update.message.reply_text(final_response)
-                logger.info(f"Sent custom response to {user.id}")
+                logger.info(f"Sent direct keyword response to {user.id}")
             else:
                 recent_history = self.get_recent_history(user.id, limit=3)
                 custom_knowledge = self.get_bot_knowledge()
@@ -927,8 +941,14 @@ class TelegramChatBot:
                 if is_group:
                     system_prompt += "\n\nYeh ek group chat hai. Natural tareeke se sabke saath baat karo. Agar @tgshaitaan (owner) baat kar rahe hain, unhe special respect do."
                 
+                if use_knowledge_for_keyword and keyword_detected:
+                    system_prompt += f"\n\n🔍 KEYWORD DETECTED: '{keyword_detected}' - User ne iss keyword ka zikr kiya hai. Tumhe apne knowledge base se iss keyword se related information dhoond ke detailed aur helpful response dena hai."
+                
                 if custom_knowledge:
                     system_prompt += f"\n\nIMPORTANT - Tumhe yeh information diya gaya hai:\n{custom_knowledge}\n\nJab bhi user tumse kuch pooche, tum yahi information use karna aur unhe products ya services ke baare mein batana."
+                    
+                    if use_knowledge_for_keyword and keyword_detected:
+                        system_prompt += f"\n\nABHI KE MESSAGE MEIN '{keyword_detected}' keyword detect hua hai, toh tumhe upar diye gaye knowledge base se iss keyword ke related jaankari deni hai. Agar knowledge base mein iske baare mein kuch hai toh woh batana, warna politely batana ki tumhare paas abhi iske baare mein information nahi hai."
                 
                 messages = [
                     {

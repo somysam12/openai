@@ -8,6 +8,20 @@ The bot provides multilingual conversational AI with conversation history persis
 
 Preferred communication style: Simple, everyday language.
 
+# Recent Changes
+
+## October 19, 2025 - Enhanced Keyword System with Knowledge Base Integration
+
+**Feature**: Keywords can now intelligently use the Knowledge Base for responses.
+
+**Implementation**:
+- When adding a keyword without a custom response (e.g., just `price`), the bot uses AI + Knowledge Base to generate intelligent context-aware responses
+- When adding a keyword with a custom response (e.g., `price | ₹500`), the bot sends that exact response
+- This allows admins to create smart keywords that leverage stored knowledge rather than fixed responses
+- Updated admin panel UI to clearly show which keywords use AI vs direct responses
+
+**User Benefit**: Admin can add keywords like "price", "features", "support" without writing responses, and the bot will automatically search the knowledge base and respond intelligently.
+
 # System Architecture
 
 ## Dual Architecture Approach
