@@ -239,6 +239,22 @@ class TelegramChatBot:
         
         return users
     
+    def get_user_info(self, user_id: int):
+        """Get user information from database"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT username, first_name, last_name
+            FROM all_users
+            WHERE user_id = ?
+        ''', (user_id,))
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        return result if result else (None, None, None)
+    
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
         self.track_user(user.id, user.username, user.first_name, user.last_name)
@@ -626,7 +642,24 @@ class TelegramChatBot:
             recent_history = self.get_recent_history(user.id, limit=3)
             custom_knowledge = self.get_bot_knowledge()
             
+            username_db, first_name_db, last_name_db = self.get_user_info(user.id)
+            user_first_name = user.first_name or first_name_db or "Dost"
+            user_username = user.username or username_db
+            
+            chat_type = update.message.chat.type
+            is_group = chat_type in ['group', 'supergroup']
+            
             system_prompt = "Tum ek helpful aur friendly AI assistant ho. Tum Hindi aur English dono mein baat kar sakte ho."
+            
+            system_prompt += f"\n\nUser ka naam: {user_first_name}"
+            if user_username:
+                system_prompt += f" (@{user_username})"
+            system_prompt += "\nJab zarurat ho, tum user ka naam use kar sakte ho apne response mein natural tareeke se."
+            
+            system_prompt += f"\n\nIMPORTANT: Tumhare owner ka naam @tgshaitaan hai. Jab bhi owner ka zikr ho ya unka message ho, tum unhe full respect dena. Unhe 'Boss', 'Sir', ya 'Owner' kehke address karna."
+            
+            if is_group:
+                system_prompt += "\n\nYeh ek group chat hai. Natural tareeke se sabke saath baat karo. Agar @tgshaitaan (owner) baat kar rahe hain, unhe special respect do."
             
             if custom_knowledge:
                 system_prompt += f"\n\nIMPORTANT - Tumhe yeh information diya gaya hai:\n{custom_knowledge}\n\nJab bhi user tumse kuch pooche, tum yahi information use karna aur unhe products ya services ke baare mein batana."
