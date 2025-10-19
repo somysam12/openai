@@ -10,6 +10,8 @@ from pyrogram import Client
 api_id = int(os.getenv('TELEGRAM_API_ID', '0'))
 api_hash = os.getenv('TELEGRAM_API_HASH', '')
 phone_number = os.getenv('PHONE_NUMBER', '')
+phone_code = os.getenv('PHONE_CODE', '')
+password = os.getenv('TWO_FACTOR_PASSWORD', '')
 
 if api_id == 0 or not api_hash:
     print("❌ Error: TELEGRAM_API_ID and TELEGRAM_API_HASH not found!")
@@ -28,13 +30,20 @@ if not phone_number:
     exit(1)
 
 print(f"\n📱 Using phone number: {phone_number}")
-print("\nThis will create a session file for your account.")
-print("\nAfter entering the phone number, you will receive:")
-print("1. OTP code on Telegram")
-print("2. Request for 2FA password (if enabled)")
+
+if not phone_code:
+    print("\n⚠️  PHONE_CODE environment variable not set!")
+    print("\nPlease check your Telegram app for the OTP code.")
+    print("Then add it to Replit Secrets:")
+    print("   Key: PHONE_CODE")
+    print("   Value: The 5-digit code from Telegram (e.g., 12345)")
+    print("\nThen restart this workflow.")
+    exit(1)
+
+print(f"\n✅ Using OTP code: {phone_code}")
 print("\n" + "=" * 50)
 
-app = Client("my_personal_account", api_id=api_id, api_hash=api_hash, phone_number=phone_number)
+app = Client("my_personal_account", api_id=api_id, api_hash=api_hash, phone_number=phone_number, phone_code=phone_code, password=password if password else None)
 
 with app:
     me = app.get_me()
