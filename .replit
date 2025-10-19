@@ -58,10 +58,6 @@ args = "Server"
 task = "workflow.run"
 args = "Personal Account Bot"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Authenticate Pyrogram"
-
 [[workflows.workflow]]
 name = "Telegram Bot"
 author = "agent"
@@ -92,17 +88,6 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python personal_account_autoreply.py"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow]]
-name = "Authenticate Pyrogram"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python authenticate_pyrogram.py"
 
 [workflows.workflow.metadata]
 outputType = "console"
