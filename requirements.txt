@@ -9,3 +9,8 @@ pyrogram
 python-telegram-bot==21.0.1
 telegram
 tgcrypto
+flask
+openai
+pyrogram
+python-telegram-bot
+tgcrypto
