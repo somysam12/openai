@@ -102,6 +102,14 @@ class TelegramChatBot:
             )
         ''')
         
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS group_keywords (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                keyword TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
         conn.commit()
         conn.close()
         logger.info("Database initialized successfully")
@@ -120,11 +128,18 @@ class TelegramChatBot:
                 InlineKeyboardButton("👥 View Users", callback_data="admin_view_users")
             ],
             [
-                InlineKeyboardButton("💬 Message User", callback_data="admin_message_user"),
-                InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast")
+                InlineKeyboardButton("🔑 View Keywords", callback_data="admin_view_keywords"),
+                InlineKeyboardButton("➕ Add Keyword", callback_data="admin_add_keyword")
             ],
             [
-                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session"),
+                InlineKeyboardButton("➖ Remove Keyword", callback_data="admin_remove_keyword"),
+                InlineKeyboardButton("💬 Message User", callback_data="admin_message_user")
+            ],
+            [
+                InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
+                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session")
+            ],
+            [
                 InlineKeyboardButton("🔄 Refresh Panel", callback_data="admin_refresh")
             ]
         ]
@@ -254,6 +269,52 @@ class TelegramChatBot:
         conn.close()
         
         return result if result else (None, None, None)
+    
+    def get_group_keywords(self):
+        """Get all group keywords"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT keyword FROM group_keywords')
+        results = cursor.fetchall()
+        conn.close()
+        
+        return [row[0].lower() for row in results]
+    
+    def add_group_keyword(self, keyword: str):
+        """Add a new group keyword"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('INSERT INTO group_keywords (keyword) VALUES (?)', (keyword,))
+        conn.commit()
+        conn.close()
+    
+    def remove_group_keyword(self, keyword: str):
+        """Remove a group keyword"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM group_keywords WHERE LOWER(keyword) = LOWER(?)', (keyword,))
+        deleted = cursor.rowcount
+        conn.commit()
+        conn.close()
+        
+        return deleted > 0
+    
+    def should_respond_in_group(self, message_text: str, bot_username: str) -> bool:
+        """Check if bot should respond to a group message"""
+        message_lower = message_text.lower()
+        
+        if f"@{bot_username.lower()}" in message_lower:
+            return True
+        
+        keywords = self.get_group_keywords()
+        for keyword in keywords:
+            if keyword in message_lower:
+                return True
+        
+        return False
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
@@ -501,6 +562,66 @@ class TelegramChatBot:
                 parse_mode='Markdown'
             )
         
+        elif data == "admin_view_keywords":
+            keywords = self.get_group_keywords()
+            if keywords:
+                keyword_text = "🔑 *Group Keywords:*\n\n"
+                for idx, kw in enumerate(keywords, 1):
+                    escaped_kw = escape_markdown(kw)
+                    keyword_text += f"{idx}\\. {escaped_kw}\n"
+                keyword_text += f"\n*Total: {len(keywords)} keywords*\n\n"
+                keyword_text += "Bot will respond in groups when these keywords appear\\."
+                await query.edit_message_text(
+                    keyword_text,
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='MarkdownV2'
+                )
+            else:
+                await query.edit_message_text(
+                    "⚠️ *No keywords set\\!*\n\n"
+                    "Bot will only respond in groups when tagged\\.\n"
+                    "Click 'Add Keyword' to add trigger words\\.",
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='MarkdownV2'
+                )
+        
+        elif data == "admin_add_keyword":
+            self.admin_state[user_id] = "waiting_add_keyword"
+            await query.edit_message_text(
+                "➕ *Add Group Keyword*\n\n"
+                "Send the keyword that should trigger bot response in groups.\n\n"
+                "*Example:* help, support, price, info\n\n"
+                "📌 *Note:* Keywords are case-insensitive.\n\n"
+                "Send /cancel to cancel.",
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_remove_keyword":
+            keywords = self.get_group_keywords()
+            if not keywords:
+                await query.edit_message_text(
+                    "⚠️ *No keywords to remove\\!*\n\n"
+                    "Add some keywords first\\.",
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='MarkdownV2'
+                )
+                return
+            
+            keyword_text = "➖ *Remove Keyword*\n\n"
+            keyword_text += "Current keywords:\n\n"
+            for idx, kw in enumerate(keywords, 1):
+                escaped_kw = escape_markdown(kw)
+                keyword_text += f"{idx}\\. {escaped_kw}\n"
+            keyword_text += f"\n*Total: {len(keywords)} keywords*\n\n"
+            keyword_text += "Send the number \\(1, 2, 3\\.\\.\\.\\) of the keyword you want to remove\\.\n"
+            keyword_text += "Send /cancel to cancel\\."
+            
+            self.admin_state[user_id] = "waiting_remove_keyword"
+            await query.edit_message_text(
+                keyword_text,
+                parse_mode='MarkdownV2'
+            )
+        
         elif data == "admin_refresh":
             await query.edit_message_text(
                 "🔐 *Admin Control Panel*\n\n"
@@ -608,6 +729,58 @@ class TelegramChatBot:
                     reply_markup=self.get_admin_keyboard()
                 )
                 return
+            
+            elif state == "waiting_add_keyword":
+                keyword = user_message.strip()
+                self.add_group_keyword(keyword)
+                del self.admin_state[user.id]
+                await update.message.reply_text(
+                    f"✅ *Keyword Added!*\n\n"
+                    f"New keyword: {keyword}\n\n"
+                    f"Bot will now respond in groups when this word appears!",
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='Markdown'
+                )
+                logger.info(f"Admin {user.id} added keyword: {keyword}")
+                return
+            
+            elif state == "waiting_remove_keyword":
+                try:
+                    keyword_num = int(user_message.strip())
+                    keywords = self.get_group_keywords()
+                    
+                    if keyword_num < 1 or keyword_num > len(keywords):
+                        await update.message.reply_text(
+                            f"❌ Invalid number! Please send a number between 1 and {len(keywords)}.",
+                            reply_markup=self.get_admin_keyboard()
+                        )
+                        return
+                    
+                    keyword_to_remove = keywords[keyword_num - 1]
+                    
+                    if self.remove_group_keyword(keyword_to_remove):
+                        del self.admin_state[user.id]
+                        await update.message.reply_text(
+                            f"✅ *Keyword Removed!*\n\n"
+                            f"Removed: {keyword_to_remove}\n\n"
+                            f"Remaining: {len(keywords) - 1} keywords",
+                            reply_markup=self.get_admin_keyboard(),
+                            parse_mode='Markdown'
+                        )
+                        logger.info(f"Admin {user.id} removed keyword: {keyword_to_remove}")
+                    else:
+                        await update.message.reply_text(
+                            "❌ Failed to remove keyword!",
+                            reply_markup=self.get_admin_keyboard()
+                        )
+                    return
+                    
+                except ValueError:
+                    await update.message.reply_text(
+                        "❌ Please send a valid number!",
+                        reply_markup=self.get_admin_keyboard()
+                    )
+                    return
         
         if user.id in self.user_to_admin_chat:
             admin_id = self.user_to_admin_chat[user.id]
@@ -636,6 +809,17 @@ class TelegramChatBot:
                 await update.message.reply_text(f"❌ Failed to send: {e}")
                 return
         
+        chat_type = update.message.chat.type
+        is_group = chat_type in ['group', 'supergroup']
+        
+        if is_group:
+            bot_info = await context.bot.get_me()
+            bot_username = bot_info.username
+            
+            if not self.should_respond_in_group(user_message, bot_username):
+                logger.info(f"Ignoring group message (no keyword/tag): {user_message[:50]}")
+                return
+        
         await update.message.chat.send_action("typing")
         
         try:
@@ -645,9 +829,6 @@ class TelegramChatBot:
             username_db, first_name_db, last_name_db = self.get_user_info(user.id)
             user_first_name = user.first_name or first_name_db or "Dost"
             user_username = user.username or username_db
-            
-            chat_type = update.message.chat.type
-            is_group = chat_type in ['group', 'supergroup']
             
             system_prompt = "Tum ek helpful aur friendly AI assistant ho. Tum Hindi aur English dono mein baat kar sakte ho."
             
