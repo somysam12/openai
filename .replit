@@ -1,4 +1,4 @@
-modules = ["nodejs-22"]
+modules = ["nodejs-22", "python-3.11"]
 
 [agent]
 stack = "AGENT_STACK"
@@ -34,18 +34,6 @@ externalPort = 3003
 localPort = 36057
 externalPort = 4200
 
-[[ports]]
-localPort = 40903
-externalPort = 5000
-
-[[ports]]
-localPort = 50052
-externalPort = 3002
-
-[[ports]]
-localPort = 50053
-externalPort = 3001
-
 [workflows]
 runButton = "Project"
 
@@ -56,32 +44,15 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Start application"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start inngest server"
+args = "Telegram Bot"
 
 [[workflows.workflow]]
-name = "Start application"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
-
-[[workflows.workflow]]
-name = "Start inngest server"
+name = "Telegram Bot"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "./scripts/inngest.sh"
-waitForPort = 3000
+args = "python main.py"
 
 [workflows.workflow.metadata]
-outputType = "automations"
+outputType = "console"
