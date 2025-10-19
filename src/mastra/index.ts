@@ -6,6 +6,8 @@ import pino from "pino";
 import { MCPServer } from "@mastra/mcp";
 import { NonRetriableError } from "inngest";
 import { z } from "zod";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
 import { sharedPostgresStorage } from "./storage";
 import { inngest, inngestServe } from "./inngest";
@@ -113,6 +115,95 @@ export const mastra = new Mastra({
       },
     ],
     apiRoutes: [
+      // Serve index.html at root
+      {
+        path: "/",
+        method: "GET",
+        createHandler: async () => {
+          return async (c) => {
+            try {
+              const html = await readFile(join(process.cwd(), "public", "index.html"), "utf-8");
+              c.header("Content-Type", "text/html");
+              return c.body(html);
+            } catch (error) {
+              return c.text("File not found", 404);
+            }
+          };
+        },
+      },
+      // Serve CSS files
+      {
+        path: "/chat.css",
+        method: "GET",
+        createHandler: async () => {
+          return async (c) => {
+            try {
+              const css = await readFile(join(process.cwd(), "public", "chat.css"), "utf-8");
+              c.header("Content-Type", "text/css");
+              return c.body(css);
+            } catch (error) {
+              return c.text("File not found", 404);
+            }
+          };
+        },
+      },
+      // Serve JS files
+      {
+        path: "/chat.js",
+        method: "GET",
+        createHandler: async () => {
+          return async (c) => {
+            try {
+              const js = await readFile(join(process.cwd(), "public", "chat.js"), "utf-8");
+              c.header("Content-Type", "application/javascript");
+              return c.body(js);
+            } catch (error) {
+              return c.text("File not found", 404);
+            }
+          };
+        },
+      },
+      // Web chat API endpoint
+      {
+        path: "/api/chat",
+        method: "POST",
+        createHandler: async ({ mastra }) => {
+          return async (c) => {
+            const logger = mastra.getLogger();
+            try {
+              const { message, sessionId } = await c.req.json();
+              
+              if (!message || !sessionId) {
+                return c.json({ error: "Message and sessionId required" }, 400);
+              }
+
+              logger?.info("💬 [Web Chat] Received message", {
+                sessionId,
+                messageLength: message.length,
+              });
+
+              const { text } = await telegramChatAgent.generate(
+                [{ role: "user", content: message }],
+                {
+                  resourceId: "web-bot",
+                  threadId: sessionId,
+                  maxSteps: 5,
+                }
+              );
+
+              logger?.info("✅ [Web Chat] Response generated", {
+                sessionId,
+                responseLength: text.length,
+              });
+
+              return c.json({ response: text });
+            } catch (error) {
+              logger?.error("❌ [Web Chat] Error", { error });
+              return c.json({ error: "Failed to process message" }, 500);
+            }
+          };
+        },
+      },
       // This API route is used to register the Mastra workflow (inngest function) on the inngest server
       {
         path: "/api/inngest",

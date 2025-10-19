@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with AI Bot</title>
+    <link rel="stylesheet" href="/chat.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🤖 AI Chatbot</h1>
+            <p id="status-indicator">Ready to chat!</p>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot-message">
+                <div class="message-content">
+                    <p>Namaste! 🙏 Main aapka AI dost hoon! Bataiye, aap kaunsi language mein baat karna pasand karenge? 😄</p>
+                    <p><em>(Tell me which language you're comfortable with - Hindi, English, Hinglish, ya koi aur!)</em></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <input 
+                type="text" 
+                id="messageInput" 
+                placeholder="Type your message here..." 
+                autocomplete="off"
+            >
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+
+    <script src="/chat.js"></script>
+</body>
+</html>
