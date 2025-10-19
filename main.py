@@ -106,7 +106,6 @@ class TelegramChatBot:
             CREATE TABLE IF NOT EXISTS group_keywords (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 keyword TEXT NOT NULL,
-                response TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
