@@ -355,6 +355,7 @@ class PersonalAccountBot:
     
     def run(self):
         """Start the personal account bot"""
+        import asyncio
         logger.info("Starting Personal Account Auto-Reply Bot...")
         
         # Register handler for incoming private messages
@@ -367,7 +368,31 @@ class PersonalAccountBot:
         logger.info(f"Auto-reply message: {self.auto_reply_message[:100]}...")
         logger.info(f"Cooldown period: {self.reply_cooldown_hours} hours per user")
         
-        self.app.run()
+        # Use asyncio approach instead of run() to avoid signal handling issues in threads
+        async def start_and_idle():
+            await self.app.start()
+            logger.info("✅ Personal account bot started successfully!")
+            # Keep running without signal handlers (which don't work in threads)
+            while True:
+                await asyncio.sleep(1)
+        
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        try:
+            loop.run_until_complete(start_and_idle())
+        except KeyboardInterrupt:
+            logger.info("Stopping personal account bot...")
+            loop.run_until_complete(self.app.stop())
+        except Exception as e:
+            logger.error(f"Error in personal bot: {e}")
+            try:
+                loop.run_until_complete(self.app.stop())
+            except:
+                pass
 
 if __name__ == '__main__':
     try:
