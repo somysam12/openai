@@ -113,17 +113,18 @@ class TelegramChatBot:
         keyboard = [
             [
                 InlineKeyboardButton("📚 View Knowledge", callback_data="admin_view_knowledge"),
-                InlineKeyboardButton("✏️ Set Knowledge", callback_data="admin_set_knowledge")
+                InlineKeyboardButton("✏️ Add Knowledge", callback_data="admin_set_knowledge")
             ],
             [
-                InlineKeyboardButton("👥 View Users", callback_data="admin_view_users"),
-                InlineKeyboardButton("💬 Message User", callback_data="admin_message_user")
+                InlineKeyboardButton("🗑️ Delete Knowledge", callback_data="admin_delete_knowledge"),
+                InlineKeyboardButton("👥 View Users", callback_data="admin_view_users")
             ],
             [
-                InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
-                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session")
+                InlineKeyboardButton("💬 Message User", callback_data="admin_message_user"),
+                InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast")
             ],
             [
+                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session"),
                 InlineKeyboardButton("🔄 Refresh Panel", callback_data="admin_refresh")
             ]
         ]
@@ -148,24 +149,52 @@ class TelegramChatBot:
         conn.close()
     
     def get_bot_knowledge(self):
+        """Get all knowledge entries combined as text for AI"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute('SELECT knowledge_text FROM bot_knowledge ORDER BY updated_at DESC LIMIT 1')
-        result = cursor.fetchone()
+        cursor.execute('SELECT knowledge_text FROM bot_knowledge ORDER BY created_at ASC')
+        results = cursor.fetchall()
         conn.close()
         
-        return result[0] if result else None
+        if not results:
+            return None
+        
+        return '\n\n'.join([row[0] for row in results])
     
-    def set_bot_knowledge(self, knowledge: str):
+    def get_all_bot_knowledge(self):
+        """Get all knowledge entries with IDs for display"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute('DELETE FROM bot_knowledge')
+        cursor.execute('SELECT id, knowledge_text, created_at FROM bot_knowledge ORDER BY created_at ASC')
+        results = cursor.fetchall()
+        conn.close()
+        
+        return results
+    
+    def set_bot_knowledge(self, knowledge: str):
+        """Add new knowledge entry (does NOT delete existing)"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
         cursor.execute('INSERT INTO bot_knowledge (knowledge_text) VALUES (?)', (knowledge,))
         
         conn.commit()
         conn.close()
+    
+    def delete_bot_knowledge(self, knowledge_id: int):
+        """Delete a specific knowledge entry by ID"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM bot_knowledge WHERE id = ?', (knowledge_id,))
+        deleted = cursor.rowcount
+        
+        conn.commit()
+        conn.close()
+        
+        return deleted > 0
     
     def save_chat_history(self, user_id: int, username: str, message: str, response: str):
         conn = sqlite3.connect(self.db_path)
@@ -287,33 +316,62 @@ class TelegramChatBot:
         data = query.data
         
         if data == "admin_view_knowledge":
-            knowledge = self.get_bot_knowledge()
-            if knowledge:
+            all_knowledge = self.get_all_bot_knowledge()
+            if all_knowledge:
+                knowledge_text = "📚 *All Bot Knowledge:*\n\n"
+                for idx, (kid, ktext, created) in enumerate(all_knowledge, 1):
+                    preview = ktext[:100] + "..." if len(ktext) > 100 else ktext
+                    knowledge_text += f"{idx}. {preview}\n\n"
+                knowledge_text += f"*Total: {len(all_knowledge)} knowledge entries*\n\n"
+                knowledge_text += "Use 'Add Knowledge' to add more or 'Delete Knowledge' to remove."
                 await query.edit_message_text(
-                    f"📚 *Current Bot Knowledge:*\n\n{knowledge}\n\n"
-                    f"To update, click 'Set Knowledge' button.",
-                    reply_markup=self.get_admin_keyboard()
+                    knowledge_text,
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='Markdown'
                 )
             else:
                 await query.edit_message_text(
                     "⚠️ *No knowledge set yet!*\n\n"
-                    "Click 'Set Knowledge' to add information.",
+                    "Click 'Add Knowledge' to add information.",
                     reply_markup=self.get_admin_keyboard()
                 )
         
         elif data == "admin_set_knowledge":
             self.admin_state[user_id] = "waiting_knowledge"
             await query.edit_message_text(
-                "✏️ *Set Bot Knowledge*\n\n"
-                "Please send the knowledge/information you want the bot to use.\n\n"
+                "✏️ *Add Bot Knowledge*\n\n"
+                "Please send the knowledge/information you want to ADD.\n\n"
                 "*Example:*\n"
-                "Main Mars Loader sell karta hoon.\n"
-                "Products:\n"
-                "- Month Key: ₹500\n"
-                "- Week Key: ₹200\n"
-                "- Day Key: ₹50\n\n"
-                "Support: @YourUsername\n\n"
+                "Product: Mars Loader Premium\n"
+                "Price: ₹500/month\n"
+                "Features: Unlimited access, 24/7 support\n\n"
+                "📌 *Note:* This will be ADDED to existing knowledge (not replaced).\n\n"
                 "Send /cancel to cancel.",
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_delete_knowledge":
+            all_knowledge = self.get_all_bot_knowledge()
+            if not all_knowledge:
+                await query.edit_message_text(
+                    "⚠️ *No knowledge to delete!*\n\n"
+                    "Add some knowledge first.",
+                    reply_markup=self.get_admin_keyboard()
+                )
+                return
+            
+            knowledge_text = "🗑️ *Delete Knowledge*\n\n"
+            knowledge_text += "Current knowledge entries:\n\n"
+            for idx, (kid, ktext, created) in enumerate(all_knowledge, 1):
+                preview = ktext[:80] + "..." if len(ktext) > 80 else ktext
+                knowledge_text += f"{idx}. {preview}\n\n"
+            knowledge_text += f"\n*Total: {len(all_knowledge)} entries*\n\n"
+            knowledge_text += "Send the number (1, 2, 3...) of the knowledge you want to delete.\n"
+            knowledge_text += "Send /cancel to cancel."
+            
+            self.admin_state[user_id] = "waiting_delete_knowledge"
+            await query.edit_message_text(
+                knowledge_text,
                 parse_mode='Markdown'
             )
         
@@ -453,14 +511,54 @@ class TelegramChatBot:
                 self.set_bot_knowledge(user_message)
                 del self.admin_state[user.id]
                 await update.message.reply_text(
-                    f"✅ *Knowledge Updated!*\n\n"
+                    f"✅ *Knowledge Added!*\n\n"
                     f"New knowledge:\n{user_message}\n\n"
-                    f"Bot will now use this information!",
+                    f"Bot will now use this information along with existing knowledge!",
                     reply_markup=self.get_admin_keyboard(),
                     parse_mode='Markdown'
                 )
-                logger.info(f"Admin {user.id} updated bot knowledge")
+                logger.info(f"Admin {user.id} added bot knowledge")
                 return
+            
+            elif state == "waiting_delete_knowledge":
+                try:
+                    knowledge_num = int(user_message.strip())
+                    all_knowledge = self.get_all_bot_knowledge()
+                    
+                    if knowledge_num < 1 or knowledge_num > len(all_knowledge):
+                        await update.message.reply_text(
+                            f"❌ Invalid number! Please send a number between 1 and {len(all_knowledge)}.",
+                            reply_markup=self.get_admin_keyboard()
+                        )
+                        return
+                    
+                    knowledge_id = all_knowledge[knowledge_num - 1][0]
+                    deleted_text = all_knowledge[knowledge_num - 1][1]
+                    
+                    if self.delete_bot_knowledge(knowledge_id):
+                        del self.admin_state[user.id]
+                        preview = deleted_text[:100] + "..." if len(deleted_text) > 100 else deleted_text
+                        await update.message.reply_text(
+                            f"✅ *Knowledge Deleted!*\n\n"
+                            f"Deleted entry #{knowledge_num}:\n{preview}\n\n"
+                            f"Remaining: {len(all_knowledge) - 1} entries",
+                            reply_markup=self.get_admin_keyboard(),
+                            parse_mode='Markdown'
+                        )
+                        logger.info(f"Admin {user.id} deleted knowledge #{knowledge_num}")
+                    else:
+                        await update.message.reply_text(
+                            "❌ Failed to delete knowledge!",
+                            reply_markup=self.get_admin_keyboard()
+                        )
+                    return
+                    
+                except ValueError:
+                    await update.message.reply_text(
+                        "❌ Please send a valid number!",
+                        reply_markup=self.get_admin_keyboard()
+                    )
+                    return
             
             elif state == "waiting_broadcast":
                 users = self.get_all_users()
