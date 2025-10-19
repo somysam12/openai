@@ -10,17 +10,51 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
-## October 19, 2025 - Enhanced Keyword System with Knowledge Base Integration
+## October 19, 2025 - Comprehensive Admin Features: Chat Management & Live Group Sessions
 
-**Feature**: Keywords can now intelligently use the Knowledge Base for responses.
+**Feature**: Major admin panel expansion with chat management and live group messaging capabilities.
 
 **Implementation**:
+
+### 1. View User Chats by Username
+- Admin can retrieve complete DM history of any user by entering their username
+- Shows last 20 messages with timestamps
+- Includes both user messages and bot responses
+
+### 2. Delete Chat History
+- **Delete User Chats**: Remove all DM history for a specific username
+- **Delete ALL Chats**: Clear entire chat database with confirmation
+- Both options include user confirmation dialogs for safety
+
+### 3. Live Group Messaging Sessions
+- Admin can view list of all groups the bot is in
+- Select any group to start a live messaging session
+- During active session:
+  - All group messages forwarded to admin in real-time
+  - Admin messages sent through bot to the group
+  - Acts as a bridge for admin to participate in group conversations
+- Clean session termination with "End Session" button
+
+### 4. Enhanced Database Schema
+- Added `group_registry` table to track all groups
+- Extended `chat_history` with `message_role`, `chat_type`, `chat_id` columns for complete transcripts
+- Composite indexes on (user_id, timestamp) and (username, timestamp) for fast queries
+- `save_chat_history()` now persists full metadata including chat type and origin
+
+### 5. State Management
+- New state tracking: `waiting_username_for_chats`, `waiting_username_for_delete`, `group_messaging`
+- Concurrent session management: `active_group_sessions`, `group_to_admin` mappings
+- Session cleanup on "End Session" for both user and group sessions
+
+**Technical Details**:
+- Group tracking happens automatically when messages arrive
+- Bi-directional message routing during live sessions
+- Privacy requirement: Bot must have Privacy Mode OFF in groups to monitor all messages
+
+**Previous Enhancement** - Enhanced Keyword System with Knowledge Base Integration:
+- Keywords can now intelligently use the Knowledge Base for responses
 - When adding a keyword without a custom response (e.g., just `price`), the bot uses AI + Knowledge Base to generate intelligent context-aware responses
 - When adding a keyword with a custom response (e.g., `price | ₹500`), the bot sends that exact response
-- This allows admins to create smart keywords that leverage stored knowledge rather than fixed responses
-- Updated admin panel UI to clearly show which keywords use AI vs direct responses
-
-**User Benefit**: Admin can add keywords like "price", "features", "support" without writing responses, and the bot will automatically search the knowledge base and respond intelligently.
 
 # System Architecture
 
