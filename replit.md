@@ -10,6 +10,54 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## October 19, 2025 - Enhanced Admin Panel: Automated Messages & API Key Management
+
+**Feature**: Complete overhaul of bot behavior with automated messages management and API key tracking.
+
+**Implementation**:
+
+### 1. Automated Messages Management
+- **View/Edit Messages**: Admin can customize all bot messages (welcome, help) through admin panel
+- **Dynamic Placeholders**: Use `{first_name}` in messages for personalization
+- **Easy Updates**: Single button access to edit messages in real-time
+- **Database Storage**: All messages stored in `automated_messages` table
+
+### 2. API Key Usage & Rotation Stats
+- **Real-time Tracking**: Monitor API key usage across all keys
+- **Rotation Stats**: See which keys are being used, successful calls, rate limit hits
+- **Last Used Timestamps**: Track when each key was last used
+- **Comprehensive Dashboard**: View all stats through "🔑 API Key Stats" button
+
+### 3. Knowledge-First Bot Behavior (Keyword Feature Removed)
+- **Removed Keywords**: Completely eliminated keyword-based responses
+- **Knowledge Base Priority**: Bot now uses knowledge base as PRIMARY information source
+- **Enhanced AI Prompts**: Comprehensive system prompts ensure knowledge base is always checked first
+- **Group Behavior**: Bot responds in groups only when @mentioned or replied to
+- **Intelligent Responses**: AI extracts relevant info from knowledge base for accurate answers
+
+### 4. Database Schema Updates
+- Added `automated_messages` table for message management
+- Added `api_key_stats` table with UNIQUE constraint on key_index for usage tracking
+- Migration support for existing databases via UNIQUE INDEX creation
+- API usage tracked on every successful call and rate limit hit
+
+### 5. Admin Panel Updates  
+- Removed keyword management buttons (no longer needed)
+- Added "📝 Auto Messages" button for message customization
+- Added "🔑 API Key Stats" button for usage monitoring
+- Cleaner, more organized admin interface
+
+**Technical Details**:
+- All keyword-related functions removed (get_group_keywords, check_keyword_match, etc.)
+- Knowledge system now has detailed rules in AI prompt for comprehensive understanding
+- Groups require explicit bot mention (@bot) or reply for response
+- API tracking integrated into rotation system for seamless monitoring
+
+**Migration Safety**:
+- Existing databases automatically get UNIQUE index on api_key_stats
+- No data loss during migration
+- Backward compatible with existing chat history
+
 ## October 19, 2025 - Comprehensive Admin Features: Chat Management & Live Group Sessions
 
 **Feature**: Major admin panel expansion with chat management and live group messaging capabilities.
