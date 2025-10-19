@@ -6,6 +6,7 @@ Use this for Render deployment to run both bots in one web service
 import os
 import threading
 import logging
+import time
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -20,12 +21,27 @@ def run_main_bot():
         logger.info("🤖 STARTING MAIN TELEGRAM BOT (Bot API)")
         logger.info("=" * 60)
         
-        # Import and run main bot
-        import main
-        # The main.py file will handle everything
+        # Import main bot modules
+        from main import TelegramChatBot, run_flask
         
+        # Start Flask health check server in background
+        flask_thread = threading.Thread(target=run_flask, daemon=True, name="FlaskThread")
+        flask_thread.start()
+        logger.info("✅ Flask health check server started on port 10000")
+        
+        # Create and run bot
+        bot = TelegramChatBot()
+        logger.info("✅ Main bot initialized successfully")
+        bot.run()
+        
+    except ValueError as ve:
+        logger.error(f"❌ Configuration error: {ve}")
+        logger.error("Please check your environment variables!")
+        raise
     except Exception as e:
         logger.error(f"❌ Main bot failed to start: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         raise
 
 def run_personal_bot():
@@ -60,11 +76,14 @@ def run_personal_bot():
         
         from personal_account_autoreply import PersonalAccountBot
         bot = PersonalAccountBot()
+        logger.info("✅ Personal bot initialized successfully")
         bot.run()
         
     except Exception as e:
         logger.error(f"❌ Personal bot failed to start: {e}")
         logger.warning("Personal bot will be skipped, but main bot will continue")
+        import traceback
+        logger.error(traceback.format_exc())
 
 if __name__ == '__main__':
     logger.info("🚀 COMBINED BOT RUNNER STARTING...")
@@ -81,7 +100,6 @@ if __name__ == '__main__':
     personal_thread.start()
     
     # Give personal bot a moment to start
-    import time
     time.sleep(2)
     
     # Start main bot in foreground (this will keep the process alive)
@@ -92,4 +110,12 @@ if __name__ == '__main__':
         logger.info("🛑 Bots stopped by user")
     except Exception as e:
         logger.error(f"❌ Critical error: {e}")
+        logger.error("")
+        logger.error("=" * 60)
+        logger.error("DEPLOYMENT FAILED - CHECK ENVIRONMENT VARIABLES:")
+        logger.error("Required variables:")
+        logger.error("  - TELEGRAM_BOT_TOKEN")
+        logger.error("  - OPENAI_API_KEY (or OPENAI_API_KEY_1)")
+        logger.error("  - ADMIN_ID")
+        logger.error("=" * 60)
         raise

@@ -1,0 +1,32 @@
+[notice] A new release of pip is available: 25.1.1 -> 25.2
+[notice] To update, run: pip install --upgrade pip
+==> Requesting Node.js version >=20.9.0
+==> Using Node.js version 25.0.0 via /opt/render/project/src/package.json
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Uploading build...
+==> Uploaded in 9.9s. Compression took 3.9s
+==> Build successful 🎉
+==> Deploying...
+==> Running 'python start_both_bots.py'
+2025-10-19 22:58:20,983 - main - INFO - 🚀 COMBINED BOT RUNNER STARTING...
+2025-10-19 22:58:20,984 - main - INFO - This will run both bots simultaneously
+2025-10-19 22:58:20,984 - main - INFO - 
+2025-10-19 22:58:20,984 - main - INFO - ============================================================
+2025-10-19 22:58:20,984 - main - INFO - 👤 STARTING PERSONAL ACCOUNT BOT (Pyrogram)
+2025-10-19 22:58:20,984 - main - INFO - ============================================================
+2025-10-19 22:58:23,070 - main - INFO - ============================================================
+2025-10-19 22:58:23,070 - main - INFO - 🤖 STARTING MAIN TELEGRAM BOT (Bot API)
+2025-10-19 22:58:23,070 - main - INFO - ============================================================
+==> Application exited early
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'python start_both_bots.py'
+2025-10-19 22:58:47,729 - main - INFO - 🚀 COMBINED BOT RUNNER STARTING...
+2025-10-19 22:58:47,729 - main - INFO - This will run both bots simultaneously
+2025-10-19 22:58:47,729 - main - INFO - 
+2025-10-19 22:58:47,730 - main - INFO - ============================================================
+2025-10-19 22:58:47,730 - main - INFO - 👤 STARTING PERSONAL ACCOUNT BOT (Pyrogram)
+2025-10-19 22:58:47,730 - main - INFO - ============================================================
+2025-10-19 22:58:49,730 - main - INFO - ============================================================
+2025-10-19 22:58:49,730 - main - INFO - 🤖 STARTING MAIN TELEGRAM BOT (Bot API)
+2025-10-19 22:58:49,730 - main - INFO - ============================================================
+Need better ways to work with logs? Try theRender CLI, Render MCP Server, or set up a log stream integration
