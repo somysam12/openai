@@ -9,6 +9,7 @@ import os
 import logging
 from pyrogram import Client, filters
 from pyrogram.types import Message
+from pyrogram.enums import ChatAction
 import sqlite3
 from datetime import datetime, timedelta
 from openai import OpenAI
@@ -265,7 +266,7 @@ class PersonalAccountBot:
             
             # Step 2: Generate AI response (if enabled)
             if self.use_ai_responses and self.openai_client:
-                await client.send_chat_action(message.chat.id, "typing")
+                await client.send_chat_action(message.chat.id, ChatAction.TYPING)
                 
                 # Get conversation history
                 recent_history = self.get_recent_history(user_id, limit=3)
