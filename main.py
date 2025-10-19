@@ -2,6 +2,7 @@
 import os
 import logging
 import sqlite3
+import re
 from datetime import datetime
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -12,6 +13,12 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+def escape_markdown(text):
+    if not text:
+        return ""
+    escape_chars = r'_*[]()~`>#+-=|{}.!'
+    return ''.join('\\' + char if char in escape_chars else char for char in str(text))
 
 class TelegramChatBot:
     def __init__(self):
@@ -29,6 +36,7 @@ class TelegramChatBot:
         self.openai_client = OpenAI(api_key=self.openai_api_key)
         self.db_path = 'chat_history.db'
         self.active_admin_chats = {}
+        self.user_to_admin_chat = {}
         self.init_database()
     
     def init_database(self):
@@ -169,21 +177,21 @@ class TelegramChatBot:
         
         if self.is_admin(user.id):
             welcome_message = (
-                f"🔐 *Admin Panel - Namaste {user.first_name}!*\n\n"
-                "You have admin access. Admin commands:\n\n"
+                "🔐 *Admin Panel - Namaste {}\\!*\n\n"
+                "You have admin access\\. Admin commands:\n\n"
                 "*Bot Management:*\n"
-                "/setknowledge - Set bot knowledge/logic\n"
-                "/viewknowledge - View current knowledge\n\n"
+                "/setknowledge \\- Set bot knowledge/logic\n"
+                "/viewknowledge \\- View current knowledge\n\n"
                 "*User Management:*\n"
-                "/users - View all users list\n"
-                "/message @username - Start chat with user\n"
-                "/endsession - End current chat session\n"
-                "/broadcast - Send message to all users\n\n"
+                "/users \\- View all users list\n"
+                "/message @username \\- Start chat with user\n"
+                "/endsession \\- End current chat session\n"
+                "/broadcast \\- Send message to all users\n\n"
                 "*Regular Commands:*\n"
-                "/start - Bot ko shuru karein\n"
-                "/help - Madad prapt karein\n"
-                "/clear - Chat history clear karein"
-            )
+                "/start \\- Bot ko shuru karein\n"
+                "/help \\- Madad prapt karein\n"
+                "/clear \\- Chat history clear karein"
+            ).format(escape_markdown(user.first_name))
         else:
             welcome_message = (
                 f"🤖 Namaste {user.first_name}!\n\n"
@@ -195,7 +203,7 @@ class TelegramChatBot:
                 "Bas apna message bhejein aur main jawab doonga! 🚀"
             )
         
-        await update.message.reply_text(welcome_message, parse_mode='Markdown')
+        await update.message.reply_text(welcome_message, parse_mode='MarkdownV2' if self.is_admin(user.id) else None)
         logger.info(f"User {user.id} ({user.username}) started the bot")
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -205,15 +213,16 @@ class TelegramChatBot:
             help_text = (
                 "🔐 *Admin Help*\n\n"
                 "*Bot Knowledge Management:*\n"
-                "/setknowledge - Apni products aur services ki details add karein\n"
-                "/viewknowledge - Current knowledge dekhein\n\n"
+                "/setknowledge \\- Apni products aur services ki details add karein\n"
+                "/viewknowledge \\- Current knowledge dekhein\n\n"
                 "*User Management:*\n"
-                "/users - Sabhi users ki list dekhein\n"
-                "/message @username - Kisi user se baat karein\n"
-                "/endsession - Chat session khatam karein\n"
-                "/broadcast - Sabhi users ko message bhejein\n\n"
-                "Bot jo knowledge aap denge, wahi users ko batayega! 💡"
+                "/users \\- Sabhi users ki list dekhein\n"
+                "/message @username \\- Kisi user se baat karein\n"
+                "/endsession \\- Chat session khatam karein\n"
+                "/broadcast \\- Sabhi users ko message bhejein\n\n"
+                "Bot jo knowledge aap denge, wahi users ko batayega\\! 💡"
             )
+            await update.message.reply_text(help_text, parse_mode='MarkdownV2')
         else:
             help_text = (
                 "📚 *Kaise istemal karein:*\n\n"
@@ -226,8 +235,7 @@ class TelegramChatBot:
                 "/clear - Apni chat history clear karein\n\n"
                 "Kuch bhi poochne ke liye bas message type karein! 💬"
             )
-        
-        await update.message.reply_text(help_text, parse_mode='Markdown')
+            await update.message.reply_text(help_text, parse_mode='Markdown')
     
     async def clear_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
@@ -249,16 +257,15 @@ class TelegramChatBot:
         
         if not context.args:
             await update.message.reply_text(
-                "📝 *Knowledge/Logic kaise set karein:*\n\n"
+                "📝 Knowledge/Logic kaise set karein:\n\n"
                 "Command: /setknowledge <your knowledge>\n\n"
-                "*Example:*\n"
+                "Example:\n"
                 "/setknowledge Main Mars Loader sell karta hoon. Hamare products:\n"
                 "1. Month Key - ₹500\n"
                 "2. Week Key - ₹200\n"
                 "3. Day Key - ₹50\n\n"
                 "Support: @YourUsername\n\n"
-                "Yeh knowledge bot sabhi users ko batayega! 🚀",
-                parse_mode='Markdown'
+                "Yeh knowledge bot sabhi users ko batayega! 🚀"
             )
             return
         
@@ -267,9 +274,8 @@ class TelegramChatBot:
         
         await update.message.reply_text(
             f"✅ Bot knowledge successfully update ho gayi hai!\n\n"
-            f"*Current Knowledge:*\n{knowledge}\n\n"
-            "Ab bot yahi information users ko dega! 🎯",
-            parse_mode='Markdown'
+            f"Current Knowledge:\n{knowledge}\n\n"
+            "Ab bot yahi information users ko dega! 🎯"
         )
         logger.info(f"Admin {update.effective_user.id} updated bot knowledge")
     
@@ -282,8 +288,7 @@ class TelegramChatBot:
         
         if knowledge:
             await update.message.reply_text(
-                f"📚 *Current Bot Knowledge:*\n\n{knowledge}",
-                parse_mode='Markdown'
+                f"📚 Current Bot Knowledge:\n\n{knowledge}"
             )
         else:
             await update.message.reply_text(
@@ -302,22 +307,22 @@ class TelegramChatBot:
             await update.message.reply_text("📭 Abhi tak koi user nahi hai!")
             return
         
-        user_list = "👥 *All Users:*\n\n"
+        user_list = "👥 All Users:\n\n"
         
         for idx, (user_id, username, first_name, last_name, first_seen, last_active, msg_count) in enumerate(users, 1):
             full_name = f"{first_name or ''} {last_name or ''}".strip()
             username_display = f"@{username}" if username else "No username"
             user_list += (
                 f"{idx}. {full_name or 'Unknown'}\n"
-                f"   └ {username_display}\n"
-                f"   └ ID: `{user_id}`\n"
-                f"   └ Messages: {msg_count}\n"
-                f"   └ Last Active: {last_active[:16]}\n\n"
+                f"   - {username_display}\n"
+                f"   - ID: {user_id}\n"
+                f"   - Messages: {msg_count}\n"
+                f"   - Last Active: {last_active[:16]}\n\n"
             )
         
-        user_list += f"*Total Users: {len(users)}*"
+        user_list += f"Total Users: {len(users)}"
         
-        await update.message.reply_text(user_list, parse_mode='Markdown')
+        await update.message.reply_text(user_list)
     
     async def message_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not self.is_admin(update.effective_user.id):
@@ -326,13 +331,12 @@ class TelegramChatBot:
         
         if not context.args:
             await update.message.reply_text(
-                "📨 *Kisi user se chat kaise karein:*\n\n"
+                "📨 Kisi user se chat kaise karein:\n\n"
                 "Command: /message @username\n\n"
-                "*Example:*\n"
+                "Example:\n"
                 "/message @John\n\n"
                 "Fir aap jo bhi message bhejenge, wo us user ko jayega!\n"
-                "Chat khatam karne ke liye: /endsession",
-                parse_mode='Markdown'
+                "Chat khatam karne ke liye: /endsession"
             )
             return
         
@@ -350,10 +354,12 @@ class TelegramChatBot:
         
         target_user_id, first_name = result
         self.active_admin_chats[self.admin_id] = target_user_id
+        self.user_to_admin_chat[target_user_id] = self.admin_id
         
         await update.message.reply_text(
             f"✅ Chat session active with {first_name} (@{target_username})\n\n"
             f"Ab aap jo bhi message bhejenge, {first_name} ko jayega.\n"
+            f"Unke replies bhi aapko milenge.\n"
             f"Session end karne ke liye: /endsession"
         )
     
@@ -363,7 +369,10 @@ class TelegramChatBot:
             return
         
         if self.admin_id in self.active_admin_chats:
+            target_user = self.active_admin_chats[self.admin_id]
             del self.active_admin_chats[self.admin_id]
+            if target_user in self.user_to_admin_chat:
+                del self.user_to_admin_chat[target_user]
             await update.message.reply_text("✅ Chat session khatam ho gayi hai!")
         else:
             await update.message.reply_text("⚠️ Koi active session nahi hai!")
@@ -375,12 +384,11 @@ class TelegramChatBot:
         
         if not context.args:
             await update.message.reply_text(
-                "📢 *Broadcast Message kaise bhejein:*\n\n"
+                "📢 Broadcast Message kaise bhejein:\n\n"
                 "Command: /broadcast <your message>\n\n"
-                "*Example:*\n"
+                "Example:\n"
                 "/broadcast New offer! 50% discount today only!\n\n"
-                "Yeh message sabhi users ko jayega! 🚀",
-                parse_mode='Markdown'
+                "Yeh message sabhi users ko jayega! 🚀"
             )
             return
         
@@ -397,8 +405,7 @@ class TelegramChatBot:
             try:
                 await context.bot.send_message(
                     chat_id=user_id,
-                    text=f"📢 *Broadcast Message:*\n\n{message}",
-                    parse_mode='Markdown'
+                    text=f"📢 Broadcast Message:\n\n{message}"
                 )
                 sent_count += 1
             except Exception as e:
@@ -418,13 +425,24 @@ class TelegramChatBot:
         self.track_user(user.id, user.username, user.first_name, user.last_name)
         logger.info(f"Received message from {user.id} ({user.username}): {user_message}")
         
+        if user.id in self.user_to_admin_chat:
+            admin_id = self.user_to_admin_chat[user.id]
+            try:
+                await context.bot.send_message(
+                    chat_id=admin_id,
+                    text=f"💬 Message from {user.first_name} (@{user.username or 'no_username'}):\n\n{user_message}"
+                )
+                await update.message.reply_text("✅ Aapka message support team ko bhej diya gaya hai!")
+                return
+            except Exception as e:
+                logger.error(f"Failed to forward message to admin: {e}")
+        
         if self.is_admin(user.id) and user.id in self.active_admin_chats:
             target_user_id = self.active_admin_chats[user.id]
             try:
                 await context.bot.send_message(
                     chat_id=target_user_id,
-                    text=f"💬 *Message from Support:*\n\n{user_message}",
-                    parse_mode='Markdown'
+                    text=f"💬 Message from Support:\n\n{user_message}"
                 )
                 await update.message.reply_text("✅ Message sent!")
                 return
