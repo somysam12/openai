@@ -106,6 +106,7 @@ class TelegramChatBot:
             CREATE TABLE IF NOT EXISTS group_keywords (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 keyword TEXT NOT NULL,
+                response TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -271,22 +272,22 @@ class TelegramChatBot:
         return result if result else (None, None, None)
     
     def get_group_keywords(self):
-        """Get all group keywords"""
+        """Get all group keywords with responses"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute('SELECT keyword FROM group_keywords')
+        cursor.execute('SELECT keyword, response FROM group_keywords')
         results = cursor.fetchall()
         conn.close()
         
-        return [row[0].lower() for row in results]
+        return results
     
-    def add_group_keyword(self, keyword: str):
-        """Add a new group keyword"""
+    def add_group_keyword(self, keyword: str, response: str = None):
+        """Add a new group keyword with optional custom response"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute('INSERT INTO group_keywords (keyword) VALUES (?)', (keyword,))
+        cursor.execute('INSERT INTO group_keywords (keyword, response) VALUES (?, ?)', (keyword, response))
         conn.commit()
         conn.close()
     
@@ -302,19 +303,29 @@ class TelegramChatBot:
         
         return deleted > 0
     
-    def should_respond_in_group(self, message_text: str, bot_username: str) -> bool:
+    def check_keyword_match(self, message_text: str) -> tuple:
+        """Check if message contains a keyword and return the keyword and its response"""
+        message_lower = message_text.lower()
+        keywords = self.get_group_keywords()
+        
+        for keyword, response in keywords:
+            if keyword.lower() in message_lower:
+                return (keyword, response)
+        
+        return (None, None)
+    
+    def should_respond_in_group(self, message_text: str, bot_username: str, is_reply_to_bot: bool = False) -> bool:
         """Check if bot should respond to a group message"""
+        if is_reply_to_bot:
+            return True
+            
         message_lower = message_text.lower()
         
         if f"@{bot_username.lower()}" in message_lower:
             return True
         
-        keywords = self.get_group_keywords()
-        for keyword in keywords:
-            if keyword in message_lower:
-                return True
-        
-        return False
+        keyword, _ = self.check_keyword_match(message_text)
+        return keyword is not None
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
@@ -566,9 +577,14 @@ class TelegramChatBot:
             keywords = self.get_group_keywords()
             if keywords:
                 keyword_text = "🔑 *Group Keywords:*\n\n"
-                for idx, kw in enumerate(keywords, 1):
+                for idx, (kw, resp) in enumerate(keywords, 1):
                     escaped_kw = escape_markdown(kw)
                     keyword_text += f"{idx}\\. {escaped_kw}\n"
+                    if resp:
+                        escaped_resp = escape_markdown(resp[:50] + "..." if len(resp) > 50 else resp)
+                        keyword_text += f"   Response: {escaped_resp}\n"
+                    else:
+                        keyword_text += f"   Response: AI generated\n"
                 keyword_text += f"\n*Total: {len(keywords)} keywords*\n\n"
                 keyword_text += "Bot will respond in groups when these keywords appear\\."
                 await query.edit_message_text(
@@ -589,9 +605,14 @@ class TelegramChatBot:
             self.admin_state[user_id] = "waiting_add_keyword"
             await query.edit_message_text(
                 "➕ *Add Group Keyword*\n\n"
-                "Send the keyword that should trigger bot response in groups.\n\n"
-                "*Example:* help, support, price, info\n\n"
-                "📌 *Note:* Keywords are case-insensitive.\n\n"
+                "Send in this format:\n"
+                "`keyword | custom response`\n\n"
+                "*Example 1:* `help | Bot help: Contact @tgshaitaan for support!`\n"
+                "*Example 2:* `price` (AI will generate response)\n\n"
+                "📌 *Note:* \n"
+                "- Keywords are case-insensitive\n"
+                "- Use `|` to separate keyword and response\n"
+                "- Without `|`, AI will generate response\n\n"
                 "Send /cancel to cancel.",
                 parse_mode='Markdown'
             )
@@ -609,7 +630,7 @@ class TelegramChatBot:
             
             keyword_text = "➖ *Remove Keyword*\n\n"
             keyword_text += "Current keywords:\n\n"
-            for idx, kw in enumerate(keywords, 1):
+            for idx, (kw, _) in enumerate(keywords, 1):
                 escaped_kw = escape_markdown(kw)
                 keyword_text += f"{idx}\\. {escaped_kw}\n"
             keyword_text += f"\n*Total: {len(keywords)} keywords*\n\n"
@@ -731,17 +752,28 @@ class TelegramChatBot:
                 return
             
             elif state == "waiting_add_keyword":
-                keyword = user_message.strip()
-                self.add_group_keyword(keyword)
+                if '|' in user_message:
+                    parts = user_message.split('|', 1)
+                    keyword = parts[0].strip()
+                    response = parts[1].strip()
+                else:
+                    keyword = user_message.strip()
+                    response = None
+                
+                self.add_group_keyword(keyword, response)
                 del self.admin_state[user.id]
+                
+                response_info = f"Custom: {response[:50]}..." if response and len(response) > 50 else (response if response else "AI generated")
+                
                 await update.message.reply_text(
                     f"✅ *Keyword Added!*\n\n"
-                    f"New keyword: {keyword}\n\n"
+                    f"Keyword: {keyword}\n"
+                    f"Response: {response_info}\n\n"
                     f"Bot will now respond in groups when this word appears!",
                     reply_markup=self.get_admin_keyboard(),
                     parse_mode='Markdown'
                 )
-                logger.info(f"Admin {user.id} added keyword: {keyword}")
+                logger.info(f"Admin {user.id} added keyword: {keyword} with response: {response}")
                 return
             
             elif state == "waiting_remove_keyword":
@@ -756,7 +788,7 @@ class TelegramChatBot:
                         )
                         return
                     
-                    keyword_to_remove = keywords[keyword_num - 1]
+                    keyword_to_remove, _ = keywords[keyword_num - 1]
                     
                     if self.remove_group_keyword(keyword_to_remove):
                         del self.admin_state[user.id]
@@ -812,65 +844,85 @@ class TelegramChatBot:
         chat_type = update.message.chat.type
         is_group = chat_type in ['group', 'supergroup']
         
+        is_reply_to_bot = False
+        custom_response = None
+        
         if is_group:
             bot_info = await context.bot.get_me()
             bot_username = bot_info.username
             
-            if not self.should_respond_in_group(user_message, bot_username):
-                logger.info(f"Ignoring group message (no keyword/tag): {user_message[:50]}")
+            if update.message.reply_to_message:
+                replied_user = update.message.reply_to_message.from_user
+                if replied_user and replied_user.username == bot_username:
+                    is_reply_to_bot = True
+                    logger.info(f"Group message is reply to bot from {user.id}")
+            
+            keyword, response = self.check_keyword_match(user_message)
+            if response:
+                custom_response = response
+                logger.info(f"Keyword matched: {keyword}, using custom response")
+            
+            if not self.should_respond_in_group(user_message, bot_username, is_reply_to_bot):
+                logger.info(f"Ignoring group message (no keyword/tag/reply): {user_message[:50]}")
                 return
         
         await update.message.chat.send_action("typing")
         
         try:
-            recent_history = self.get_recent_history(user.id, limit=3)
-            custom_knowledge = self.get_bot_knowledge()
-            
-            username_db, first_name_db, last_name_db = self.get_user_info(user.id)
-            user_first_name = user.first_name or first_name_db or "Dost"
-            user_username = user.username or username_db
-            
-            system_prompt = "Tum ek helpful aur friendly AI assistant ho. Tum Hindi aur English dono mein baat kar sakte ho."
-            
-            system_prompt += f"\n\nUser ka naam: {user_first_name}"
-            if user_username:
-                system_prompt += f" (@{user_username})"
-            system_prompt += "\nJab zarurat ho, tum user ka naam use kar sakte ho apne response mein natural tareeke se."
-            
-            system_prompt += f"\n\nIMPORTANT: Tumhare owner ka naam @tgshaitaan hai. Jab bhi owner ka zikr ho ya unka message ho, tum unhe full respect dena. Unhe 'Boss', 'Sir', ya 'Owner' kehke address karna."
-            
-            if is_group:
-                system_prompt += "\n\nYeh ek group chat hai. Natural tareeke se sabke saath baat karo. Agar @tgshaitaan (owner) baat kar rahe hain, unhe special respect do."
-            
-            if custom_knowledge:
-                system_prompt += f"\n\nIMPORTANT - Tumhe yeh information diya gaya hai:\n{custom_knowledge}\n\nJab bhi user tumse kuch pooche, tum yahi information use karna aur unhe products ya services ke baare mein batana."
-            
-            messages = [
-                {
-                    "role": "system",
-                    "content": system_prompt
-                }
-            ]
-            
-            for prev_msg, prev_resp in recent_history:
-                messages.append({"role": "user", "content": prev_msg})
-                messages.append({"role": "assistant", "content": prev_resp})
-            
-            messages.append({"role": "user", "content": user_message})
-            
-            response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages,
-                max_tokens=500,
-                temperature=0.7
-            )
-            
-            ai_response = response.choices[0].message.content
-            
-            self.save_chat_history(user.id, user.username or "Unknown", user_message, ai_response)
-            
-            await update.message.reply_text(ai_response)
-            logger.info(f"Sent response to {user.id}")
+            if custom_response:
+                final_response = custom_response
+                self.save_chat_history(user.id, user.username or "Unknown", user_message, final_response)
+                await update.message.reply_text(final_response)
+                logger.info(f"Sent custom response to {user.id}")
+            else:
+                recent_history = self.get_recent_history(user.id, limit=3)
+                custom_knowledge = self.get_bot_knowledge()
+                
+                username_db, first_name_db, last_name_db = self.get_user_info(user.id)
+                user_first_name = user.first_name or first_name_db or "Dost"
+                user_username = user.username or username_db
+                
+                system_prompt = "Tum ek helpful aur friendly AI assistant ho. Tum Hindi aur English dono mein baat kar sakte ho."
+                
+                system_prompt += f"\n\nUser ka naam: {user_first_name}"
+                if user_username:
+                    system_prompt += f" (@{user_username})"
+                system_prompt += "\nJab zarurat ho, tum user ka naam use kar sakte ho apne response mein natural tareeke se."
+                
+                system_prompt += f"\n\nIMPORTANT: Tumhare owner ka naam @tgshaitaan hai. Jab bhi owner ka zikr ho ya unka message ho, tum unhe full respect dena. Unhe 'Boss', 'Sir', ya 'Owner' kehke address karna."
+                
+                if is_group:
+                    system_prompt += "\n\nYeh ek group chat hai. Natural tareeke se sabke saath baat karo. Agar @tgshaitaan (owner) baat kar rahe hain, unhe special respect do."
+                
+                if custom_knowledge:
+                    system_prompt += f"\n\nIMPORTANT - Tumhe yeh information diya gaya hai:\n{custom_knowledge}\n\nJab bhi user tumse kuch pooche, tum yahi information use karna aur unhe products ya services ke baare mein batana."
+                
+                messages = [
+                    {
+                        "role": "system",
+                        "content": system_prompt
+                    }
+                ]
+                
+                for prev_msg, prev_resp in recent_history:
+                    messages.append({"role": "user", "content": prev_msg})
+                    messages.append({"role": "assistant", "content": prev_resp})
+                
+                messages.append({"role": "user", "content": user_message})
+                
+                response = self.openai_client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=messages,
+                    max_tokens=500,
+                    temperature=0.7
+                )
+                
+                ai_response = response.choices[0].message.content
+                
+                self.save_chat_history(user.id, user.username or "Unknown", user_message, ai_response)
+                
+                await update.message.reply_text(ai_response)
+                logger.info(f"Sent AI response to {user.id}")
             
         except Exception as e:
             logger.error(f"Error processing message: {e}")
