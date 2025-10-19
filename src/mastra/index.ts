@@ -9,8 +9,8 @@ import { z } from "zod";
 
 import { sharedPostgresStorage } from "./storage";
 import { inngest, inngestServe } from "./inngest";
-import { exampleWorkflow } from "./workflows/exampleWorflow";
-import { exampleAgent } from "./agents/exampleAgent";
+import { telegramChatWorkflow } from "./workflows/telegramChatWorkflow";
+import { telegramChatAgent } from "./agents/telegramChatAgent";
 
 class ProductionPinoLogger extends MastraLogger {
   protected logger: pino.Logger;
@@ -56,9 +56,9 @@ class ProductionPinoLogger extends MastraLogger {
 export const mastra = new Mastra({
   storage: sharedPostgresStorage,
   // Register your workflows here
-  workflows: {},
+  workflows: { telegramChatWorkflow },
   // Register your agents here
-  agents: {},
+  agents: { telegramChatAgent },
   mcpServers: {
     allTools: new MCPServer({
       name: "allTools",
