@@ -4,8 +4,8 @@ import logging
 import sqlite3
 import re
 from datetime import datetime
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from openai import OpenAI
 
 logging.basicConfig(
@@ -37,6 +37,7 @@ class TelegramChatBot:
         self.db_path = 'chat_history.db'
         self.active_admin_chats = {}
         self.user_to_admin_chat = {}
+        self.admin_state = {}
         self.init_database()
     
     def init_database(self):
@@ -89,6 +90,26 @@ class TelegramChatBot:
     
     def is_admin(self, user_id: int) -> bool:
         return user_id == self.admin_id
+    
+    def get_admin_keyboard(self):
+        keyboard = [
+            [
+                InlineKeyboardButton("📚 View Knowledge", callback_data="admin_view_knowledge"),
+                InlineKeyboardButton("✏️ Set Knowledge", callback_data="admin_set_knowledge")
+            ],
+            [
+                InlineKeyboardButton("👥 View Users", callback_data="admin_view_users"),
+                InlineKeyboardButton("💬 Message User", callback_data="admin_message_user")
+            ],
+            [
+                InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
+                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session")
+            ],
+            [
+                InlineKeyboardButton("🔄 Refresh Panel", callback_data="admin_refresh")
+            ]
+        ]
+        return InlineKeyboardMarkup(keyboard)
     
     def track_user(self, user_id: int, username: str, first_name: str, last_name: str):
         conn = sqlite3.connect(self.db_path)
@@ -177,21 +198,14 @@ class TelegramChatBot:
         
         if self.is_admin(user.id):
             welcome_message = (
-                "🔐 *Admin Panel - Namaste {}\\!*\n\n"
-                "You have admin access\\. Admin commands:\n\n"
-                "*Bot Management:*\n"
-                "/setknowledge \\- Set bot knowledge/logic\n"
-                "/viewknowledge \\- View current knowledge\n\n"
-                "*User Management:*\n"
-                "/users \\- View all users list\n"
-                "/message @username \\- Start chat with user\n"
-                "/endsession \\- End current chat session\n"
-                "/broadcast \\- Send message to all users\n\n"
-                "*Regular Commands:*\n"
-                "/start \\- Bot ko shuru karein\n"
-                "/help \\- Madad prapt karein\n"
-                "/clear \\- Chat history clear karein"
-            ).format(escape_markdown(user.first_name))
+                f"🔐 *Admin Control Panel*\n\n"
+                f"Welcome {user.first_name}!\n\n"
+                f"Use buttons below to manage your bot:"
+            )
+            await update.message.reply_text(
+                welcome_message,
+                reply_markup=self.get_admin_keyboard()
+            )
         else:
             welcome_message = (
                 f"🤖 Namaste {user.first_name}!\n\n"
@@ -202,27 +216,19 @@ class TelegramChatBot:
                 "/clear - Chat history clear karein\n\n"
                 "Bas apna message bhejein aur main jawab doonga! 🚀"
             )
+            await update.message.reply_text(welcome_message)
         
-        await update.message.reply_text(welcome_message, parse_mode='MarkdownV2' if self.is_admin(user.id) else None)
         logger.info(f"User {user.id} ({user.username}) started the bot")
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
         
         if self.is_admin(user.id):
-            help_text = (
+            await update.message.reply_text(
                 "🔐 *Admin Help*\n\n"
-                "*Bot Knowledge Management:*\n"
-                "/setknowledge \\- Apni products aur services ki details add karein\n"
-                "/viewknowledge \\- Current knowledge dekhein\n\n"
-                "*User Management:*\n"
-                "/users \\- Sabhi users ki list dekhein\n"
-                "/message @username \\- Kisi user se baat karein\n"
-                "/endsession \\- Chat session khatam karein\n"
-                "/broadcast \\- Sabhi users ko message bhejein\n\n"
-                "Bot jo knowledge aap denge, wahi users ko batayega\\! 💡"
+                "Use buttons in /start for easy control!",
+                reply_markup=self.get_admin_keyboard()
             )
-            await update.message.reply_text(help_text, parse_mode='MarkdownV2')
         else:
             help_text = (
                 "📚 *Kaise istemal karein:*\n\n"
@@ -250,173 +256,161 @@ class TelegramChatBot:
         await update.message.reply_text("✅ Aapki chat history clear ho gayi hai!")
         logger.info(f"User {user_id} cleared their chat history")
     
-    async def setknowledge_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not self.is_admin(update.effective_user.id):
-            await update.message.reply_text("❌ Yeh command sirf admin ke liye hai!")
+    async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        user_id = query.from_user.id
+        
+        if not self.is_admin(user_id):
+            await query.answer("❌ Admin access required!")
             return
         
-        if not context.args:
-            await update.message.reply_text(
-                "📝 Knowledge/Logic kaise set karein:\n\n"
-                "Command: /setknowledge <your knowledge>\n\n"
-                "Example:\n"
-                "/setknowledge Main Mars Loader sell karta hoon. Hamare products:\n"
-                "1. Month Key - ₹500\n"
-                "2. Week Key - ₹200\n"
-                "3. Day Key - ₹50\n\n"
-                "Support: @YourUsername\n\n"
-                "Yeh knowledge bot sabhi users ko batayega! 🚀"
-            )
-            return
+        await query.answer()
         
-        knowledge = ' '.join(context.args)
-        self.set_bot_knowledge(knowledge)
+        data = query.data
         
-        await update.message.reply_text(
-            f"✅ Bot knowledge successfully update ho gayi hai!\n\n"
-            f"Current Knowledge:\n{knowledge}\n\n"
-            "Ab bot yahi information users ko dega! 🎯"
-        )
-        logger.info(f"Admin {update.effective_user.id} updated bot knowledge")
-    
-    async def viewknowledge_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not self.is_admin(update.effective_user.id):
-            await update.message.reply_text("❌ Yeh command sirf admin ke liye hai!")
-            return
-        
-        knowledge = self.get_bot_knowledge()
-        
-        if knowledge:
-            await update.message.reply_text(
-                f"📚 Current Bot Knowledge:\n\n{knowledge}"
-            )
-        else:
-            await update.message.reply_text(
-                "⚠️ Abhi tak koi knowledge set nahi hui hai!\n\n"
-                "Use /setknowledge to add knowledge."
-            )
-    
-    async def users_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not self.is_admin(update.effective_user.id):
-            await update.message.reply_text("❌ Yeh command sirf admin ke liye hai!")
-            return
-        
-        users = self.get_all_users()
-        
-        if not users:
-            await update.message.reply_text("📭 Abhi tak koi user nahi hai!")
-            return
-        
-        user_list = "👥 All Users:\n\n"
-        
-        for idx, (user_id, username, first_name, last_name, first_seen, last_active, msg_count) in enumerate(users, 1):
-            full_name = f"{first_name or ''} {last_name or ''}".strip()
-            username_display = f"@{username}" if username else "No username"
-            user_list += (
-                f"{idx}. {full_name or 'Unknown'}\n"
-                f"   - {username_display}\n"
-                f"   - ID: {user_id}\n"
-                f"   - Messages: {msg_count}\n"
-                f"   - Last Active: {last_active[:16]}\n\n"
-            )
-        
-        user_list += f"Total Users: {len(users)}"
-        
-        await update.message.reply_text(user_list)
-    
-    async def message_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not self.is_admin(update.effective_user.id):
-            await update.message.reply_text("❌ Yeh command sirf admin ke liye hai!")
-            return
-        
-        if not context.args:
-            await update.message.reply_text(
-                "📨 Kisi user se chat kaise karein:\n\n"
-                "Command: /message @username\n\n"
-                "Example:\n"
-                "/message @John\n\n"
-                "Fir aap jo bhi message bhejenge, wo us user ko jayega!\n"
-                "Chat khatam karne ke liye: /endsession"
-            )
-            return
-        
-        target_username = context.args[0].replace('@', '')
-        
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('SELECT user_id, first_name FROM all_users WHERE username = ?', (target_username,))
-        result = cursor.fetchone()
-        conn.close()
-        
-        if not result:
-            await update.message.reply_text(f"❌ User @{target_username} not found!")
-            return
-        
-        target_user_id, first_name = result
-        self.active_admin_chats[self.admin_id] = target_user_id
-        self.user_to_admin_chat[target_user_id] = self.admin_id
-        
-        await update.message.reply_text(
-            f"✅ Chat session active with {first_name} (@{target_username})\n\n"
-            f"Ab aap jo bhi message bhejenge, {first_name} ko jayega.\n"
-            f"Unke replies bhi aapko milenge.\n"
-            f"Session end karne ke liye: /endsession"
-        )
-    
-    async def endsession_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not self.is_admin(update.effective_user.id):
-            await update.message.reply_text("❌ Yeh command sirf admin ke liye hai!")
-            return
-        
-        if self.admin_id in self.active_admin_chats:
-            target_user = self.active_admin_chats[self.admin_id]
-            del self.active_admin_chats[self.admin_id]
-            if target_user in self.user_to_admin_chat:
-                del self.user_to_admin_chat[target_user]
-            await update.message.reply_text("✅ Chat session khatam ho gayi hai!")
-        else:
-            await update.message.reply_text("⚠️ Koi active session nahi hai!")
-    
-    async def broadcast_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not self.is_admin(update.effective_user.id):
-            await update.message.reply_text("❌ Yeh command sirf admin ke liye hai!")
-            return
-        
-        if not context.args:
-            await update.message.reply_text(
-                "📢 Broadcast Message kaise bhejein:\n\n"
-                "Command: /broadcast <your message>\n\n"
-                "Example:\n"
-                "/broadcast New offer! 50% discount today only!\n\n"
-                "Yeh message sabhi users ko jayega! 🚀"
-            )
-            return
-        
-        message = ' '.join(context.args)
-        users = self.get_all_users()
-        
-        sent_count = 0
-        failed_count = 0
-        
-        for user_id, _, _, _, _, _, _ in users:
-            if user_id == self.admin_id:
-                continue
-            
-            try:
-                await context.bot.send_message(
-                    chat_id=user_id,
-                    text=f"📢 Broadcast Message:\n\n{message}"
+        if data == "admin_view_knowledge":
+            knowledge = self.get_bot_knowledge()
+            if knowledge:
+                await query.edit_message_text(
+                    f"📚 *Current Bot Knowledge:*\n\n{knowledge}\n\n"
+                    f"To update, click 'Set Knowledge' button.",
+                    reply_markup=self.get_admin_keyboard()
                 )
-                sent_count += 1
-            except Exception as e:
-                logger.error(f"Failed to send broadcast to {user_id}: {e}")
-                failed_count += 1
+            else:
+                await query.edit_message_text(
+                    "⚠️ *No knowledge set yet!*\n\n"
+                    "Click 'Set Knowledge' to add information.",
+                    reply_markup=self.get_admin_keyboard()
+                )
         
-        await update.message.reply_text(
-            f"✅ Broadcast complete!\n\n"
-            f"Sent: {sent_count}\n"
-            f"Failed: {failed_count}"
-        )
+        elif data == "admin_set_knowledge":
+            self.admin_state[user_id] = "waiting_knowledge"
+            await query.edit_message_text(
+                "✏️ *Set Bot Knowledge*\n\n"
+                "Please send the knowledge/information you want the bot to use.\n\n"
+                "*Example:*\n"
+                "Main Mars Loader sell karta hoon.\n"
+                "Products:\n"
+                "- Month Key: ₹500\n"
+                "- Week Key: ₹200\n"
+                "- Day Key: ₹50\n\n"
+                "Support: @YourUsername\n\n"
+                "Send /cancel to cancel.",
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_view_users":
+            users = self.get_all_users()
+            if not users:
+                await query.edit_message_text(
+                    "📭 No users yet!",
+                    reply_markup=self.get_admin_keyboard()
+                )
+                return
+            
+            user_list = "👥 *All Users:*\n\n"
+            for idx, (uid, username, first_name, last_name, first_seen, last_active, msg_count) in enumerate(users[:20], 1):
+                full_name = f"{first_name or ''} {last_name or ''}".strip()
+                username_display = f"@{username}" if username else "No username"
+                user_list += (
+                    f"{idx}. {full_name or 'Unknown'}\n"
+                    f"   - {username_display}\n"
+                    f"   - ID: {uid}\n"
+                    f"   - Messages: {msg_count}\n\n"
+                )
+            
+            user_list += f"\n*Total Users: {len(users)}*"
+            
+            if len(users) > 20:
+                user_list += f"\n(Showing first 20)"
+            
+            await query.edit_message_text(
+                user_list,
+                reply_markup=self.get_admin_keyboard()
+            )
+        
+        elif data == "admin_message_user":
+            users = self.get_all_users()
+            if not users:
+                await query.edit_message_text(
+                    "📭 No users to message!",
+                    reply_markup=self.get_admin_keyboard()
+                )
+                return
+            
+            keyboard = []
+            for uid, username, first_name, last_name, _, _, _ in users[:10]:
+                full_name = f"{first_name or ''} {last_name or ''}".strip()
+                display = f"{full_name or 'Unknown'} (@{username})" if username else f"{full_name or 'Unknown'}"
+                keyboard.append([InlineKeyboardButton(display, callback_data=f"msg_user_{uid}")])
+            
+            keyboard.append([InlineKeyboardButton("« Back", callback_data="admin_refresh")])
+            
+            await query.edit_message_text(
+                "💬 *Select User to Message:*\n\n"
+                "Choose a user from the list below:",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        
+        elif data.startswith("msg_user_"):
+            target_user_id = int(data.split("_")[2])
+            self.active_admin_chats[user_id] = target_user_id
+            self.user_to_admin_chat[target_user_id] = user_id
+            self.admin_state[user_id] = "chatting"
+            
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT username, first_name FROM all_users WHERE user_id = ?', (target_user_id,))
+            result = cursor.fetchone()
+            conn.close()
+            
+            username, first_name = result if result else ("Unknown", "Unknown")
+            
+            await query.edit_message_text(
+                f"✅ *Chat Session Active*\n\n"
+                f"Now chatting with: {first_name} (@{username})\n\n"
+                f"Send your messages directly. User's replies will come here.\n\n"
+                f"To end session, click button below:",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session")
+                ]])
+            )
+        
+        elif data == "admin_end_session":
+            if user_id in self.active_admin_chats:
+                target_user = self.active_admin_chats[user_id]
+                del self.active_admin_chats[user_id]
+                if target_user in self.user_to_admin_chat:
+                    del self.user_to_admin_chat[target_user]
+                if user_id in self.admin_state:
+                    del self.admin_state[user_id]
+                
+                await query.edit_message_text(
+                    "✅ *Session Ended*\n\n"
+                    "Chat session has been closed.",
+                    reply_markup=self.get_admin_keyboard()
+                )
+            else:
+                await query.edit_message_text(
+                    "⚠️ No active session!",
+                    reply_markup=self.get_admin_keyboard()
+                )
+        
+        elif data == "admin_broadcast":
+            self.admin_state[user_id] = "waiting_broadcast"
+            await query.edit_message_text(
+                "📢 *Broadcast Message*\n\n"
+                "Send the message you want to broadcast to all users.\n\n"
+                "Send /cancel to cancel.",
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_refresh":
+            await query.edit_message_text(
+                "🔐 *Admin Control Panel*\n\n"
+                "Use buttons below to manage your bot:",
+                reply_markup=self.get_admin_keyboard()
+            )
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
@@ -425,12 +419,66 @@ class TelegramChatBot:
         self.track_user(user.id, user.username, user.first_name, user.last_name)
         logger.info(f"Received message from {user.id} ({user.username}): {user_message}")
         
+        if user_message == "/cancel" and self.is_admin(user.id):
+            if user.id in self.admin_state:
+                del self.admin_state[user.id]
+            await update.message.reply_text(
+                "❌ Cancelled!",
+                reply_markup=self.get_admin_keyboard()
+            )
+            return
+        
+        if self.is_admin(user.id) and user.id in self.admin_state:
+            state = self.admin_state[user.id]
+            
+            if state == "waiting_knowledge":
+                self.set_bot_knowledge(user_message)
+                del self.admin_state[user.id]
+                await update.message.reply_text(
+                    f"✅ *Knowledge Updated!*\n\n"
+                    f"New knowledge:\n{user_message}\n\n"
+                    f"Bot will now use this information!",
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='Markdown'
+                )
+                logger.info(f"Admin {user.id} updated bot knowledge")
+                return
+            
+            elif state == "waiting_broadcast":
+                users = self.get_all_users()
+                sent_count = 0
+                failed_count = 0
+                
+                for uid, _, _, _, _, _, _ in users:
+                    if uid == self.admin_id:
+                        continue
+                    try:
+                        await context.bot.send_message(
+                            chat_id=uid,
+                            text=f"📢 *Broadcast Message:*\n\n{user_message}",
+                            parse_mode='Markdown'
+                        )
+                        sent_count += 1
+                    except Exception as e:
+                        logger.error(f"Failed to send broadcast to {uid}: {e}")
+                        failed_count += 1
+                
+                del self.admin_state[user.id]
+                await update.message.reply_text(
+                    f"✅ *Broadcast Complete!*\n\n"
+                    f"Sent: {sent_count}\n"
+                    f"Failed: {failed_count}",
+                    reply_markup=self.get_admin_keyboard()
+                )
+                return
+        
         if user.id in self.user_to_admin_chat:
             admin_id = self.user_to_admin_chat[user.id]
             try:
                 await context.bot.send_message(
                     chat_id=admin_id,
-                    text=f"💬 Message from {user.first_name} (@{user.username or 'no_username'}):\n\n{user_message}"
+                    text=f"💬 *Message from {user.first_name}* (@{user.username or 'no_username'}):\n\n{user_message}",
+                    parse_mode='Markdown'
                 )
                 await update.message.reply_text("✅ Aapka message support team ko bhej diya gaya hai!")
                 return
@@ -442,7 +490,8 @@ class TelegramChatBot:
             try:
                 await context.bot.send_message(
                     chat_id=target_user_id,
-                    text=f"💬 Message from Support:\n\n{user_message}"
+                    text=f"💬 *Message from Support:*\n\n{user_message}",
+                    parse_mode='Markdown'
                 )
                 await update.message.reply_text("✅ Message sent!")
                 return
@@ -512,12 +561,7 @@ class TelegramChatBot:
         application.add_handler(CommandHandler("start", self.start_command))
         application.add_handler(CommandHandler("help", self.help_command))
         application.add_handler(CommandHandler("clear", self.clear_command))
-        application.add_handler(CommandHandler("setknowledge", self.setknowledge_command))
-        application.add_handler(CommandHandler("viewknowledge", self.viewknowledge_command))
-        application.add_handler(CommandHandler("users", self.users_command))
-        application.add_handler(CommandHandler("message", self.message_command))
-        application.add_handler(CommandHandler("endsession", self.endsession_command))
-        application.add_handler(CommandHandler("broadcast", self.broadcast_command))
+        application.add_handler(CallbackQueryHandler(self.button_callback))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
         
         application.add_error_handler(self.error_handler)

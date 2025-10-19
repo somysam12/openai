@@ -103,22 +103,30 @@ If you see "database locked" errors:
 
 ## Post-Deployment
 
-### Set Bot Knowledge (Admin Only)
-```
-/setknowledge Main Mars Loader sell karta hoon. 
-Products:
-- Month Key: ₹500
-- Week Key: ₹200  
-- Day Key: ₹50
-Contact: @YourUsername
-```
+### Admin Panel (Button-Based Interface)
 
-### Admin Commands
-- `/users` - View all users
-- `/message @username` - Chat with specific user
-- `/broadcast Your message` - Send to all users
-- `/setknowledge` - Update bot knowledge
-- `/viewknowledge` - View current knowledge
+Admin ko commands yaad rakhne ki zarurat nahi! Bot mein ab **interactive buttons** hain.
+
+**Admin Access:**
+1. Telegram pe bot ko `/start` karein
+2. Admin panel automatically khul jayega buttons ke saath:
+
+**Available Buttons:**
+- 📚 **View Knowledge** - Current bot knowledge dekho
+- ✏️ **Set Knowledge** - Naya knowledge set karo
+- 👥 **View Users** - Sabhi users ki list
+- 💬 **Message User** - Kisi user ko select karke message karo
+- 📢 **Broadcast** - Sabhi users ko message bhejo
+- 🔚 **End Session** - Active chat session khatam karo
+- 🔄 **Refresh Panel** - Panel refresh karo
+
+**Example Workflow:**
+1. Click "Set Knowledge" button
+2. Bot knowledge message bhejega
+3. Type your product details and send
+4. Done! ✅
+
+No need to remember any commands - sab kuch buttons mein hai!
 
 ## Cost Estimate
 
