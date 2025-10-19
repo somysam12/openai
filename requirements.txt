@@ -5,3 +5,4 @@ flask
 openai
 python-telegram-bot
 telegram
+pyrogram
