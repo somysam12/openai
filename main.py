@@ -74,6 +74,8 @@ class TelegramChatBot:
         self.active_admin_chats = {}
         self.user_to_admin_chat = {}
         self.admin_state = {}
+        self.active_group_sessions = {}
+        self.group_to_admin = {}
         self.init_database()
     
     def rotate_api_key(self):
@@ -138,6 +140,43 @@ class TelegramChatBot:
             )
         ''')
         
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS group_registry (
+                group_id INTEGER PRIMARY KEY,
+                title TEXT,
+                username TEXT,
+                chat_type TEXT,
+                first_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_active DATETIME DEFAULT CURRENT_TIMESTAMP,
+                message_count INTEGER DEFAULT 0
+            )
+        ''')
+        
+        try:
+            cursor.execute('ALTER TABLE chat_history ADD COLUMN message_role TEXT DEFAULT "user"')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('ALTER TABLE chat_history ADD COLUMN chat_type TEXT DEFAULT "dm"')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('ALTER TABLE chat_history ADD COLUMN chat_id INTEGER')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_chat_user_time ON chat_history(user_id, timestamp DESC)')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_chat_type_time ON chat_history(chat_type, chat_id, timestamp DESC)')
+        except sqlite3.OperationalError:
+            pass
+        
         conn.commit()
         conn.close()
         logger.info("Database initialized successfully")
@@ -164,10 +203,15 @@ class TelegramChatBot:
                 InlineKeyboardButton("💬 Message User", callback_data="admin_message_user")
             ],
             [
-                InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
-                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session")
+                InlineKeyboardButton("📂 View User Chats", callback_data="admin_view_user_chats"),
+                InlineKeyboardButton("🗑️ Delete Chats", callback_data="admin_delete_chats_menu")
             ],
             [
+                InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
+                InlineKeyboardButton("🏘️ Group Sessions", callback_data="admin_group_sessions")
+            ],
+            [
+                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session"),
                 InlineKeyboardButton("🔄 Refresh Panel", callback_data="admin_refresh")
             ]
         ]
@@ -239,14 +283,14 @@ class TelegramChatBot:
         
         return deleted > 0
     
-    def save_chat_history(self, user_id: int, username: str, message: str, response: str):
+    def save_chat_history(self, user_id: int, username: str, message: str, response: str, chat_type: str = 'dm', chat_id: int = None):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
-            INSERT INTO chat_history (user_id, username, message, response)
-            VALUES (?, ?, ?, ?)
-        ''', (user_id, username, message, response))
+            INSERT INTO chat_history (user_id, username, message, response, message_role, chat_type, chat_id)
+            VALUES (?, ?, ?, ?, 'user', ?, ?)
+        ''', (user_id, username, message, response, chat_type, chat_id or user_id))
         
         conn.commit()
         conn.close()
@@ -359,6 +403,88 @@ class TelegramChatBot:
         
         keyword, _ = self.check_keyword_match(message_text)
         return keyword is not None
+    
+    def track_group(self, chat_id: int, title: str, username: str, chat_type: str):
+        """Track group/supergroup in database"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO group_registry (group_id, title, username, chat_type, last_active, message_count)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, 1)
+            ON CONFLICT(group_id) DO UPDATE SET
+                title = ?,
+                username = ?,
+                last_active = CURRENT_TIMESTAMP,
+                message_count = message_count + 1
+        ''', (chat_id, title, username, chat_type, title, username))
+        
+        conn.commit()
+        conn.close()
+    
+    def get_all_groups(self):
+        """Get all groups bot is part of"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT group_id, title, username, chat_type, first_seen, last_active, message_count
+            FROM group_registry
+            ORDER BY last_active DESC
+        ''')
+        
+        groups = cursor.fetchall()
+        conn.close()
+        
+        return groups
+    
+    def get_user_chat_history(self, username: str, limit: int = 50):
+        """Get chat history for a specific username"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT ch.message, ch.response, ch.timestamp, ch.message_role
+            FROM chat_history ch
+            JOIN all_users au ON ch.user_id = au.user_id
+            WHERE LOWER(au.username) = LOWER(?) AND ch.chat_type = 'dm'
+            ORDER BY ch.timestamp DESC
+            LIMIT ?
+        ''', (username, limit))
+        
+        history = cursor.fetchall()
+        conn.close()
+        
+        return list(reversed(history))
+    
+    def delete_user_chats(self, username: str):
+        """Delete all chat history for a specific user"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            DELETE FROM chat_history
+            WHERE user_id IN (SELECT user_id FROM all_users WHERE LOWER(username) = LOWER(?))
+        ''', (username,))
+        
+        deleted = cursor.rowcount
+        conn.commit()
+        conn.close()
+        
+        return deleted
+    
+    def delete_all_chats(self):
+        """Delete all chat history"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM chat_history')
+        deleted = cursor.rowcount
+        
+        conn.commit()
+        conn.close()
+        
+        return deleted
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
@@ -578,6 +704,8 @@ class TelegramChatBot:
             )
         
         elif data == "admin_end_session":
+            session_ended = False
+            
             if user_id in self.active_admin_chats:
                 target_user = self.active_admin_chats[user_id]
                 del self.active_admin_chats[user_id]
@@ -585,7 +713,20 @@ class TelegramChatBot:
                     del self.user_to_admin_chat[target_user]
                 if user_id in self.admin_state:
                     del self.admin_state[user_id]
-                
+                session_ended = True
+                logger.info(f"Admin {user_id} ended user chat session")
+            
+            if user_id in self.active_group_sessions:
+                group_id = self.active_group_sessions[user_id]
+                del self.active_group_sessions[user_id]
+                if group_id in self.group_to_admin:
+                    del self.group_to_admin[group_id]
+                if user_id in self.admin_state:
+                    del self.admin_state[user_id]
+                session_ended = True
+                logger.info(f"Admin {user_id} ended group session with {group_id}")
+            
+            if session_ended:
                 await query.edit_message_text(
                     "✅ *Session Ended*\n\n"
                     "Chat session has been closed.",
@@ -677,6 +818,116 @@ class TelegramChatBot:
                 keyword_text,
                 parse_mode='MarkdownV2'
             )
+        
+        elif data == "admin_view_user_chats":
+            self.admin_state[user_id] = "waiting_username_for_chats"
+            await query.edit_message_text(
+                "📂 *View User Chats*\n\n"
+                "Send the username (without @) of the user whose chat history you want to view.\n\n"
+                "*Example:* `johndoe`\n\n"
+                "Send /cancel to cancel.",
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_delete_chats_menu":
+            keyboard = [
+                [InlineKeyboardButton("🗑️ Delete User Chats", callback_data="admin_delete_user_chats")],
+                [InlineKeyboardButton("🗑️ Delete ALL Chats", callback_data="admin_delete_all_chats")],
+                [InlineKeyboardButton("« Back", callback_data="admin_refresh")]
+            ]
+            await query.edit_message_text(
+                "🗑️ *Delete Chat History*\n\n"
+                "Choose an option:",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_delete_user_chats":
+            self.admin_state[user_id] = "waiting_username_for_delete"
+            await query.edit_message_text(
+                "🗑️ *Delete User Chats*\n\n"
+                "⚠️ This will delete ALL chat history for the specified user!\n\n"
+                "Send the username (without @) of the user:\n\n"
+                "*Example:* `johndoe`\n\n"
+                "Send /cancel to cancel.",
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_delete_all_chats":
+            keyboard = [
+                [InlineKeyboardButton("✅ Yes, Delete ALL", callback_data="confirm_delete_all_chats")],
+                [InlineKeyboardButton("❌ Cancel", callback_data="admin_refresh")]
+            ]
+            await query.edit_message_text(
+                "⚠️ *DELETE ALL CHAT HISTORY?*\n\n"
+                "This will permanently delete ALL chat history from ALL users!\n\n"
+                "Are you absolutely sure?",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        
+        elif data == "confirm_delete_all_chats":
+            deleted_count = self.delete_all_chats()
+            await query.edit_message_text(
+                f"✅ *All Chats Deleted!*\n\n"
+                f"Deleted {deleted_count} chat messages.\n\n"
+                f"Database has been cleared.",
+                reply_markup=self.get_admin_keyboard(),
+                parse_mode='Markdown'
+            )
+            logger.info(f"Admin {user_id} deleted all chat history ({deleted_count} messages)")
+        
+        elif data == "admin_group_sessions":
+            groups = self.get_all_groups()
+            if not groups:
+                await query.edit_message_text(
+                    "📭 *No Groups Found!*\n\n"
+                    "Bot is not in any groups yet, or no messages have been received from groups.",
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='Markdown'
+                )
+                return
+            
+            keyboard = []
+            for idx, (gid, title, username, chat_type, _, last_active, msg_count) in enumerate(groups[:10], 1):
+                display_name = title or f"Group {gid}"
+                keyboard.append([InlineKeyboardButton(
+                    f"{idx}. {display_name} ({msg_count} msgs)",
+                    callback_data=f"select_group_{gid}"
+                )])
+            
+            keyboard.append([InlineKeyboardButton("« Back", callback_data="admin_refresh")])
+            
+            await query.edit_message_text(
+                "🏘️ *Group Sessions*\n\n"
+                "Select a group to start live messaging mode:\n\n"
+                "*Note:* You'll see all messages from that group and can reply through the bot.",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        
+        elif data.startswith("select_group_"):
+            group_id = int(data.split("_")[2])
+            self.active_group_sessions[user_id] = group_id
+            self.group_to_admin[group_id] = user_id
+            self.admin_state[user_id] = "group_messaging"
+            
+            groups = self.get_all_groups()
+            group_info = next((g for g in groups if g[0] == group_id), None)
+            group_name = group_info[1] if group_info else f"Group {group_id}"
+            
+            await query.edit_message_text(
+                f"✅ *Group Session Active*\n\n"
+                f"Connected to: {group_name}\n\n"
+                f"You will now see all incoming messages from this group.\n"
+                f"Send any message to reply to the group.\n\n"
+                f"Click button below to end session:",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("🔚 End Group Session", callback_data="admin_end_session")
+                ]]),
+                parse_mode='Markdown'
+            )
+            logger.info(f"Admin {user_id} started group session with {group_name} ({group_id})")
         
         elif data == "admin_refresh":
             await query.edit_message_text(
@@ -854,6 +1105,79 @@ class TelegramChatBot:
                         reply_markup=self.get_admin_keyboard()
                     )
                     return
+            
+            elif state == "waiting_username_for_chats":
+                username = user_message.strip().replace('@', '')
+                history = self.get_user_chat_history(username, limit=30)
+                
+                if not history:
+                    await update.message.reply_text(
+                        f"❌ No chat history found for @{username}!\n\n"
+                        f"User might not exist or hasn't messaged the bot yet.",
+                        reply_markup=self.get_admin_keyboard(),
+                        parse_mode='Markdown'
+                    )
+                    del self.admin_state[user.id]
+                    return
+                
+                chat_text = f"📂 *Chat History for @{username}*\n\n"
+                for idx, (msg, resp, timestamp, role) in enumerate(history[-20:], 1):
+                    time_str = timestamp.split()[1][:5] if ' ' in timestamp else ""
+                    msg_preview = msg[:50] + "..." if len(msg) > 50 else msg
+                    resp_preview = resp[:50] + "..." if len(resp) > 50 else resp
+                    
+                    chat_text += f"*{time_str}*\n"
+                    chat_text += f"👤 User: {msg_preview}\n"
+                    chat_text += f"🤖 Bot: {resp_preview}\n\n"
+                
+                chat_text += f"\n*Total messages: {len(history)}*\n"
+                chat_text += f"(Showing last 20)"
+                
+                del self.admin_state[user.id]
+                await update.message.reply_text(
+                    chat_text,
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='Markdown'
+                )
+                logger.info(f"Admin {user.id} viewed chat history for @{username}")
+                return
+            
+            elif state == "waiting_username_for_delete":
+                username = user_message.strip().replace('@', '')
+                deleted_count = self.delete_user_chats(username)
+                
+                if deleted_count == 0:
+                    await update.message.reply_text(
+                        f"❌ No chats found for @{username}!",
+                        reply_markup=self.get_admin_keyboard(),
+                        parse_mode='Markdown'
+                    )
+                else:
+                    await update.message.reply_text(
+                        f"✅ *User Chats Deleted!*\n\n"
+                        f"Deleted {deleted_count} messages from @{username}.",
+                        reply_markup=self.get_admin_keyboard(),
+                        parse_mode='Markdown'
+                    )
+                    logger.info(f"Admin {user.id} deleted {deleted_count} chats from @{username}")
+                
+                del self.admin_state[user.id]
+                return
+            
+            elif state == "group_messaging":
+                if user.id in self.active_group_sessions:
+                    group_id = self.active_group_sessions[user.id]
+                    try:
+                        await context.bot.send_message(
+                            chat_id=group_id,
+                            text=user_message
+                        )
+                        await update.message.reply_text("✅ Message sent to group!")
+                        logger.info(f"Admin {user.id} sent message to group {group_id}")
+                    except Exception as e:
+                        await update.message.reply_text(f"❌ Failed to send: {e}")
+                        logger.error(f"Failed to send admin message to group: {e}")
+                return
         
         if user.id in self.user_to_admin_chat:
             admin_id = self.user_to_admin_chat[user.id]
@@ -884,6 +1208,29 @@ class TelegramChatBot:
         
         chat_type = update.message.chat.type
         is_group = chat_type in ['group', 'supergroup']
+        
+        if is_group:
+            chat = update.message.chat
+            self.track_group(
+                chat.id,
+                chat.title or "Unknown Group",
+                chat.username or "",
+                chat_type
+            )
+            
+            if chat.id in self.group_to_admin:
+                admin_id = self.group_to_admin[chat.id]
+                try:
+                    await context.bot.send_message(
+                        chat_id=admin_id,
+                        text=f"📩 *Group: {chat.title}*\n"
+                             f"👤 {user.first_name} (@{user.username or 'no_username'}):\n\n"
+                             f"{user_message}",
+                        parse_mode='Markdown'
+                    )
+                    logger.info(f"Forwarded group message to admin {admin_id}")
+                except Exception as e:
+                    logger.error(f"Failed to forward group message to admin: {e}")
         
         is_reply_to_bot = False
         keyword_detected = None
