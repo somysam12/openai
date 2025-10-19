@@ -11,6 +11,7 @@ import { sharedPostgresStorage } from "./storage";
 import { inngest, inngestServe } from "./inngest";
 import { telegramChatWorkflow } from "./workflows/telegramChatWorkflow";
 import { telegramChatAgent } from "./agents/telegramChatAgent";
+import { registerTelegramTrigger, type TriggerInfoTelegramOnNewMessage } from "../triggers/telegramTriggers";
 
 class ProductionPinoLogger extends MastraLogger {
   protected logger: pino.Logger;
@@ -126,6 +127,26 @@ export const mastra = new Mastra({
         // 3. Establishing a publish-subscribe system for real-time monitoring
         //    through the workflow:${workflowId}:${runId} channel
       },
+      ...registerTelegramTrigger({
+        triggerType: "telegram/message",
+        handler: async (mastra: Mastra, triggerInfo: TriggerInfoTelegramOnNewMessage) => {
+          const logger = mastra.getLogger();
+          logger?.info("📝 [Telegram Trigger] Received message", {
+            userName: triggerInfo.params.userName,
+            message: triggerInfo.params.message,
+            chatId: triggerInfo.payload.message.chat.id,
+          });
+
+          const run = await mastra.getWorkflow("telegramChatWorkflow").createRunAsync();
+          await run.start({
+            inputData: {
+              message: triggerInfo.params.message,
+              threadId: `telegram/${triggerInfo.payload.message.chat.id}`,
+              chatId: triggerInfo.payload.message.chat.id,
+            }
+          });
+        },
+      }),
     ],
   },
   logger:

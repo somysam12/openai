@@ -2,15 +2,14 @@ import { createStep, createWorkflow } from "../inngest";
 import { z } from "zod";
 import { telegramChatAgent } from "../agents/telegramChatAgent";
 
-const workflowInputSchema = z.object({
-  message: z.string(),
-  threadId: z.string(),
-});
-
 const useAgentStep = createStep({
   id: "use-agent",
   description: "Process user message with AI agent",
-  inputSchema: workflowInputSchema,
+  inputSchema: z.object({
+    message: z.string(),
+    threadId: z.string(),
+    chatId: z.number(),
+  }),
   outputSchema: z.object({
     response: z.string(),
     chatId: z.number(),
@@ -37,7 +36,7 @@ const useAgentStep = createStep({
 
     return {
       response: text,
-      chatId: JSON.parse(inputData.threadId.split("/")[1]).chat.id,
+      chatId: inputData.chatId,
     };
   },
 });
@@ -100,11 +99,15 @@ const sendTelegramReplyStep = createStep({
 export const telegramChatWorkflow = createWorkflow({
   id: "telegram-chat-workflow",
   description: "Handle Telegram messages with AI agent",
-  inputSchema: workflowInputSchema,
+  inputSchema: z.object({
+    message: z.string(),
+    threadId: z.string(),
+    chatId: z.number(),
+  }),
   outputSchema: z.object({
     sent: z.boolean(),
   }),
 })
-  .then(useAgentStep)
-  .then(sendTelegramReplyStep)
+  .then(useAgentStep as any)
+  .then(sendTelegramReplyStep as any)
   .commit();
