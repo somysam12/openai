@@ -1,0 +1,504 @@
+==> Deploying...
+Traceback (most recent call last):
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 767, in initialize
+    await self.get_me()
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 1873, in get_me
+    return await super().get_me(
+           ^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 541, in decorator
+    result = await func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 902, in get_me
+    result = await self._post(
+             ^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 629, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 347, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 657, in _do_post
+    return await request.post(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/request/_baserequest.py", line 200, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/request/_baserequest.py", line 377, in _request_wrapper
+    raise InvalidToken(message)
+telegram.error.InvalidToken: Unauthorized
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "/opt/render/project/src/main.py", line 1029, in <module>
+    bot.run()
+    ~~~~~~~^^
+  File "/opt/render/project/src/main.py", line 1020, in run
+    application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 836, in run_polling
+    return self.__run(
+           ~~~~~~~~~~^
+        updater_coroutine=self.updater.start_polling(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<12 lines>...
+        stop_signals=stop_signals,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 1036, in __run
+    raise exc
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 1025, in __run
+    loop.run_until_complete(self.initialize())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/python/Python-3.13.4/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 495, in initialize
+    await self.bot.initialize()
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 293, in initialize
+    await super().initialize()
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 769, in initialize
+    raise InvalidToken(f"The token `{self._token}` was rejected by the server.") from exc
+telegram.error.InvalidToken: The token `8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU` was rejected by the server.
+     ==> Exited with status 1
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'python main.py'
+2025-10-19 17:15:24,963 - __main__ - INFO - Flask health check server started
+2025-10-19 17:15:24,963 - __main__ - INFO - ✅ Loaded 1 API keys for rotation
+ * Serving Flask app 'main'
+ * Debug mode: off
+2025-10-19 17:15:25,805 - __main__ - INFO - Database initialized successfully
+2025-10-19 17:15:25,805 - __main__ - INFO - Starting Telegram bot...
+2025-10-19 17:15:26,268 - __main__ - INFO - Bot is ready and polling for messages...
+2025-10-19 17:15:26,268 - __main__ - INFO - 🔑 Using API key rotation system with 1 keys
+2025-10-19 17:15:27,000 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getMe "HTTP/1.1 401 Unauthorized"
+2025-10-19 17:15:27,001 - __main__ - ERROR - Failed to start bot: The token `8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU` was rejected by the server.
+Traceback (most recent call last):
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 767, in initialize
+    await self.get_me()
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 1873, in get_me
+    return await super().get_me(
+           ^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 541, in decorator
+    result = await func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 902, in get_me
+    result = await self._post(
+             ^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 629, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 347, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 657, in _do_post
+    return await request.post(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/request/_baserequest.py", line 200, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/request/_baserequest.py", line 377, in _request_wrapper
+    raise InvalidToken(message)
+telegram.error.InvalidToken: Unauthorized
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "/opt/render/project/src/main.py", line 1029, in <module>
+    bot.run()
+    ~~~~~~~^^
+  File "/opt/render/project/src/main.py", line 1020, in run
+    application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 836, in run_polling
+    return self.__run(
+           ~~~~~~~~~~^
+        updater_coroutine=self.updater.start_polling(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<12 lines>...
+        stop_signals=stop_signals,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 1036, in __run
+    raise exc
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 1025, in __run
+    loop.run_until_complete(self.initialize())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/python/Python-3.13.4/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 495, in initialize
+    await self.bot.initialize()
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 293, in initialize
+    await super().initialize()
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 769, in initialize
+    raise InvalidToken(f"The token `{self._token}` was rejected by the server.") from exc
+telegram.error.InvalidToken: The token `8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU` was rejected by the server.
+     ==> Deploying...
+==> Running 'python main.py'
+     ==> Exited with status 1
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-10-19 17:26:39,999 - __main__ - INFO - Flask health check server started
+2025-10-19 17:26:39,999 - __main__ - INFO - ✅ Loaded 17 API keys for rotation
+ * Serving Flask app 'main'
+ * Debug mode: off
+2025-10-19 17:26:40,725 - __main__ - INFO - Database initialized successfully
+2025-10-19 17:26:40,725 - __main__ - INFO - Starting Telegram bot...
+2025-10-19 17:26:41,191 - __main__ - INFO - Bot is ready and polling for messages...
+2025-10-19 17:26:41,191 - __main__ - INFO - 🔑 Using API key rotation system with 17 keys
+2025-10-19 17:26:42,049 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getMe "HTTP/1.1 401 Unauthorized"
+2025-10-19 17:26:42,053 - __main__ - ERROR - Failed to start bot: The token `8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU` was rejected by the server.
+Traceback (most recent call last):
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 767, in initialize
+    await self.get_me()
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 1873, in get_me
+    return await super().get_me(
+           ^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 541, in decorator
+    result = await func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 902, in get_me
+    result = await self._post(
+             ^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 629, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 347, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 657, in _do_post
+    return await request.post(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/request/_baserequest.py", line 200, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/request/_baserequest.py", line 377, in _request_wrapper
+    raise InvalidToken(message)
+telegram.error.InvalidToken: Unauthorized
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "/opt/render/project/src/main.py", line 1029, in <module>
+    bot.run()
+    ~~~~~~~^^
+  File "/opt/render/project/src/main.py", line 1020, in run
+    application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 836, in run_polling
+    return self.__run(
+           ~~~~~~~~~~^
+        updater_coroutine=self.updater.start_polling(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<12 lines>...
+        stop_signals=stop_signals,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 1036, in __run
+    raise exc
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 1025, in __run
+    loop.run_until_complete(self.initialize())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/python/Python-3.13.4/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 495, in initialize
+    await self.bot.initialize()
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 293, in initialize
+    await super().initialize()
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 769, in initialize
+    raise InvalidToken(f"The token `{self._token}` was rejected by the server.") from exc
+telegram.error.InvalidToken: The token `8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU` was rejected by the server.
+==> Running 'python main.py'
+2025-10-19 17:27:06,336 - __main__ - INFO - Flask health check server started
+2025-10-19 17:27:06,337 - __main__ - INFO - ✅ Loaded 17 API keys for rotation
+ * Serving Flask app 'main'
+ * Debug mode: off
+2025-10-19 17:27:06,758 - __main__ - INFO - Database initialized successfully
+2025-10-19 17:27:06,758 - __main__ - INFO - Starting Telegram bot...
+2025-10-19 17:27:07,245 - __main__ - INFO - Bot is ready and polling for messages...
+2025-10-19 17:27:07,245 - __main__ - INFO - 🔑 Using API key rotation system with 17 keys
+2025-10-19 17:27:08,108 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU/getMe "HTTP/1.1 401 Unauthorized"
+2025-10-19 17:27:08,109 - __main__ - ERROR - Failed to start bot: The token `8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU` was rejected by the server.
+Traceback (most recent call last):
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 767, in initialize
+    await self.get_me()
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 1873, in get_me
+    return await super().get_me(
+           ^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 541, in decorator
+    result = await func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 902, in get_me
+    result = await self._post(
+             ^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 629, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 347, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 657, in _do_post
+    return await request.post(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/request/_baserequest.py", line 200, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/request/_baserequest.py", line 377, in _request_wrapper
+    raise InvalidToken(message)
+telegram.error.InvalidToken: Unauthorized
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "/opt/render/project/src/main.py", line 1029, in <module>
+    bot.run()
+    ~~~~~~~^^
+  File "/opt/render/project/src/main.py", line 1020, in run
+    application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 836, in run_polling
+    return self.__run(
+           ~~~~~~~~~~^
+        updater_coroutine=self.updater.start_polling(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<12 lines>...
+        stop_signals=stop_signals,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 1036, in __run
+    raise exc
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 1025, in __run
+    loop.run_until_complete(self.initialize())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/python/Python-3.13.4/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 495, in initialize
+    await self.bot.initialize()
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 293, in initialize
+    await super().initialize()
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 769, in initialize
+    raise InvalidToken(f"The token `{self._token}` was rejected by the server.") from exc
+telegram.error.InvalidToken: The token `8267153211:AAH81NuZHAbfU6U1htDTzmGSE_zNvPeNAzU` was rejected by the server.
+     ==> Deploying...
+==> Running 'python main.py'
+     ==> Your service is live 🎉
+     ==> 
+     ==> ///////////////////////////////////////////////////////////
+     ==> 
+     ==> Available at your primary URL https://telegram-ai-bot-xxnq.onrender.com
+     ==> 
+     ==> ///////////////////////////////////////////////////////////
+ * Serving Flask app 'main'
+ * Debug mode: off
+2025-10-19 17:29:21,572 - __main__ - INFO - Flask health check server started
+2025-10-19 17:29:21,573 - __main__ - INFO - ✅ Loaded 17 API keys for rotation
+2025-10-19 17:29:22,959 - __main__ - INFO - Database initialized successfully
+2025-10-19 17:29:22,959 - __main__ - INFO - Starting Telegram bot...
+2025-10-19 17:29:23,184 - __main__ - INFO - Bot is ready and polling for messages...
+2025-10-19 17:29:23,185 - __main__ - INFO - 🔑 Using API key rotation system with 17 keys
+2025-10-19 17:29:24,146 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getMe "HTTP/1.1 200 OK"
+2025-10-19 17:29:24,430 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/deleteWebhook "HTTP/1.1 200 OK"
+2025-10-19 17:29:24,431 - telegram.ext.Application - INFO - Application started
+2025-10-19 17:29:29,138 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-19 17:29:29,139 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:29:29,139 - __main__ - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:29:34,979 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-19 17:29:34,980 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:29:34,980 - __main__ - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:29:42,065 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-19 17:29:42,066 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:29:42,066 - __main__ - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:29:48,029 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-19 17:29:48,030 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:29:48,030 - __main__ - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:29:57,105 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-19 17:29:57,106 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:29:57,106 - __main__ - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:30:10,927 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-19 17:30:10,928 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:30:10,928 - __main__ - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:30:28,779 - __main__ - ERROR - Failed to start bot: Unauthorized
+Traceback (most recent call last):
+  File "/opt/render/project/src/main.py", line 972, in <module>
+    bot.run()
+    ~~~~~~~^^
+  File "/opt/render/project/src/main.py", line 963, in run
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 836, in run_polling
+    return self.__run(
+           ~~~~~~~~~~^
+        updater_coroutine=self.updater.start_polling(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<12 lines>...
+        stop_signals=stop_signals,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 1042, in __run
+    loop.run_until_complete(self.updater.stop())  # type: ignore[union-attr]
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/python/Python-3.13.4/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_updater.py", line 865, in stop
+    await self._stop_polling()
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_updater.py", line 883, in _stop_polling
+    await self.__polling_task
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_updater.py", line 753, in _network_loop_retry
+    raise pex
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_updater.py", line 742, in _network_loop_retry
+    if not await do_action():
+           ^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_updater.py", line 736, in do_action
+    return action_cb_task.result()
+           ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_updater.py", line 387, in polling_action_cb
+    raise exc
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_updater.py", line 376, in polling_action_cb
+    updates = await self.bot.get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 618, in get_updates
+    updates = await super().get_updates(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 541, in decorator
+    result = await func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 4177, in get_updates
+    await self._post(
+    ^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    ),
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 629, in _post
+    return await self._do_post(
+           ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_extbot.py", line 347, in _do_post
+    return await super()._do_post(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/_bot.py", line 657, in _do_post
+    return await request.post(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/request/_baserequest.py", line 200, in post
+    result = await self._request_wrapper(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/request/_baserequest.py", line 377, in _request_wrapper
+    raise InvalidToken(message)
+telegram.error.InvalidToken: Unauthorized
+2025-10-19 17:30:29,209 - asyncio - ERROR - Task was destroyed but it is pending!
+task: <Task pending name='Application:8267153211:update_fetcher' coro=<Application._update_fetcher() running at /opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py:1179> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+Exception ignored in: <coroutine object Application._update_fetcher at 0x703e50c7dd50>
+Traceback (most recent call last):
+  File "/opt/render/project/src/.venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 1179, in _update_fetcher
+  File "/opt/render/project/python/Python-3.13.4/lib/python3.13/asyncio/queues.py", line 188, in get
+  File "/opt/render/project/python/Python-3.13.4/lib/python3.13/asyncio/base_events.py", line 833, in call_soon
+  File "/opt/render/project/python/Python-3.13.4/lib/python3.13/asyncio/base_events.py", line 556, in _check_closed
+RuntimeError: Event loop is closed
+2025-10-19 17:30:29,160 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 17:30:31,046 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-19 17:30:31,046 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:30:31,046 - __main__ - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:30:42,262 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 17:30:52,492 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 17:30:52,816 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-19 17:30:52,817 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:30:52,817 - __main__ - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:31:04,092 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 17:31:08,912 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 17:31:08,917 - __main__ - INFO - Received message from 5952524867 (Tgshaitaan): Hello
+2025-10-19 17:31:09,976 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/sendChatAction "HTTP/1.1 200 OK"
+2025-10-19 17:31:11,134 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-19 17:31:11,774 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/sendMessage "HTTP/1.1 200 OK"
+2025-10-19 17:31:11,775 - __main__ - INFO - Sent AI response to 5952524867
+2025-10-19 17:31:19,106 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 200 OK"
+2025-10-19 17:31:23,155 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAHc0HDFylsWNx7uqC2_hb2HLnC-y0VB_1w/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-19 17:31:23,156 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-19 17:31:23,156 - __main__ - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
