@@ -1003,7 +1003,7 @@ class TelegramChatBot:
     def run(self):
         logger.info("Starting Telegram bot...")
         
-        application = Application.builder().token(self.telegram_token).build()
+        application = Application.builder().token(self.telegram_token).connect_timeout(30).read_timeout(30).build()
         
         application.add_handler(CommandHandler("start", self.start_command))
         application.add_handler(CommandHandler("help", self.help_command))
@@ -1014,7 +1014,8 @@ class TelegramChatBot:
         application.add_error_handler(self.error_handler)
         
         logger.info("Bot is ready and polling for messages...")
-        application.run_polling(allowed_updates=Update.ALL_TYPES)
+        logger.info(f"🔑 Using API key rotation system with {len(self.api_keys)} keys")
+        application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
 
 if __name__ == '__main__':
     try:
