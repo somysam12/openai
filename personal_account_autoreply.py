@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Personal Telegram Account Auto-Reply Bot
+Personal Telegram Account Auto-Reply Bot with AI Integration
 Uses Pyrogram to read and reply to DMs on your personal account
+Integrates with existing bot's knowledge base, keywords, and AI logic
 """
 
 import os
@@ -10,6 +11,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 import sqlite3
 from datetime import datetime, timedelta
+from openai import OpenAI
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -19,12 +21,31 @@ logger = logging.getLogger(__name__)
 
 class PersonalAccountBot:
     def __init__(self):
-        # Get from https://my.telegram.org/apps
+        # Pyrogram credentials - Get from https://my.telegram.org/apps
         self.api_id = int(os.getenv('TELEGRAM_API_ID', '0'))
         self.api_hash = os.getenv('TELEGRAM_API_HASH', '')
         
         if self.api_id == 0 or not self.api_hash:
             raise ValueError("Please set TELEGRAM_API_ID and TELEGRAM_API_HASH environment variables")
+        
+        # OpenAI Setup (uses same logic as main bot)
+        self.api_keys = []
+        for i in range(1, 20):
+            key = os.getenv(f'OPENAI_API_KEY_{i}')
+            if key:
+                self.api_keys.append(key)
+        
+        single_key = os.getenv('OPENAI_API_KEY')
+        if single_key and single_key not in self.api_keys:
+            self.api_keys.insert(0, single_key)
+        
+        if not self.api_keys:
+            logger.warning("No OpenAI API key found - AI responses will be disabled")
+            self.openai_client = None
+        else:
+            self.current_key_index = 0
+            self.openai_client = OpenAI(api_key=self.api_keys[self.current_key_index], max_retries=0)
+            logger.info(f"✅ Loaded {len(self.api_keys)} API keys for rotation")
         
         # Session name - will create a file to save login
         self.app = Client(
@@ -33,25 +54,39 @@ class PersonalAccountBot:
             api_hash=self.api_hash
         )
         
-        # Database for tracking auto-replies (prevent spam)
-        self.db_path = 'personal_autoreplies.db'
+        # Use same database as main bot for knowledge and keywords
+        self.main_db_path = 'chat_history.db'
+        self.tracking_db_path = 'personal_autoreplies.db'
         self.init_database()
         
-        # Default auto-reply message
-        self.auto_reply_message = os.getenv(
-            'AUTO_REPLY_MESSAGE',
-            "🤖 Automatic Reply:\n\n"
-            "Thank you for your message! I'm currently unavailable. "
-            "I'll respond as soon as possible.\n\n"
-            "For urgent matters, please contact: @support"
-        )
+        # Enable/Disable features
+        self.use_ai_responses = os.getenv('USE_AI_RESPONSES', 'true').lower() == 'true'
+        self.use_keywords = os.getenv('USE_KEYWORDS', 'true').lower() == 'true'
+        self.use_knowledge_base = os.getenv('USE_KNOWLEDGE_BASE', 'true').lower() == 'true'
         
-        # Rate limiting: Max 1 auto-reply per user per 24 hours
-        self.reply_cooldown_hours = 24
+        # Rate limiting: Max replies per user
+        self.reply_cooldown_hours = int(os.getenv('REPLY_COOLDOWN_HOURS', '0'))
+        
+        logger.info(f"Personal Account Bot initialized:")
+        logger.info(f"  - AI Responses: {'✅' if self.use_ai_responses and self.openai_client else '❌'}")
+        logger.info(f"  - Keywords: {'✅' if self.use_keywords else '❌'}")
+        logger.info(f"  - Knowledge Base: {'✅' if self.use_knowledge_base else '❌'}")
+        logger.info(f"  - Cooldown: {self.reply_cooldown_hours} hours (0 = disabled)")
+    
+    def rotate_api_key(self):
+        """Rotate to the next available API key"""
+        if not self.openai_client or len(self.api_keys) <= 1:
+            return 0
+        
+        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+        new_key = self.api_keys[self.current_key_index]
+        self.openai_client = OpenAI(api_key=new_key, max_retries=0)
+        logger.warning(f"🔄 Rotated to API key #{self.current_key_index + 1}")
+        return self.current_key_index + 1
     
     def init_database(self):
         """Initialize database to track auto-replies"""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.tracking_db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -66,9 +101,93 @@ class PersonalAccountBot:
         conn.close()
         logger.info("Database initialized for personal account bot")
     
+    def get_bot_knowledge(self):
+        """Get bot knowledge from main bot's database"""
+        if not self.use_knowledge_base:
+            return None
+        
+        try:
+            conn = sqlite3.connect(self.main_db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT knowledge_text FROM bot_knowledge ORDER BY created_at ASC')
+            results = cursor.fetchall()
+            conn.close()
+            
+            if not results:
+                return None
+            
+            return '\n\n'.join([row[0] for row in results])
+        except Exception as e:
+            logger.error(f"Failed to load knowledge base: {e}")
+            return None
+    
+    def check_keyword_match(self, message: str):
+        """Check if message contains any keyword from main bot's database"""
+        if not self.use_keywords:
+            return None
+        
+        try:
+            conn = sqlite3.connect(self.main_db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT keyword, response FROM group_keywords')
+            keywords = cursor.fetchall()
+            conn.close()
+            
+            message_lower = message.lower()
+            
+            for keyword, response in keywords:
+                if keyword.lower() in message_lower:
+                    logger.info(f"Keyword matched: '{keyword}' in message")
+                    return response
+            
+            return None
+        except Exception as e:
+            logger.error(f"Failed to check keywords: {e}")
+            return None
+    
+    def get_recent_history(self, user_id: int, limit: int = 3):
+        """Get recent chat history with this user"""
+        try:
+            conn = sqlite3.connect(self.main_db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT message, response FROM chat_history
+                WHERE user_id = ? AND chat_type = 'dm'
+                ORDER BY timestamp DESC
+                LIMIT ?
+            ''', (user_id, limit))
+            
+            history = cursor.fetchall()
+            conn.close()
+            
+            return list(reversed(history))
+        except Exception as e:
+            logger.error(f"Failed to load history: {e}")
+            return []
+    
+    def save_chat_history(self, user_id: int, username: str, message: str, response: str):
+        """Save chat to main bot's database"""
+        try:
+            conn = sqlite3.connect(self.main_db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                INSERT INTO chat_history (user_id, username, message, response, message_role, chat_type, chat_id)
+                VALUES (?, ?, ?, ?, 'user', 'dm', ?)
+            ''', (user_id, username, message, response, user_id))
+            
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Failed to save chat history: {e}")
+    
     def should_auto_reply(self, user_id: int) -> bool:
         """Check if we should auto-reply to this user (rate limiting)"""
-        conn = sqlite3.connect(self.db_path)
+        if self.reply_cooldown_hours == 0:
+            return True  # Cooldown disabled
+        
+        conn = sqlite3.connect(self.tracking_db_path)
         cursor = conn.cursor()
         
         cursor.execute('SELECT last_reply_time FROM auto_replies WHERE user_id = ?', (user_id,))
@@ -86,7 +205,10 @@ class PersonalAccountBot:
     
     def record_auto_reply(self, user_id: int):
         """Record that we sent an auto-reply"""
-        conn = sqlite3.connect(self.db_path)
+        if self.reply_cooldown_hours == 0:
+            return  # Don't track if cooldown disabled
+        
+        conn = sqlite3.connect(self.tracking_db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -101,34 +223,130 @@ class PersonalAccountBot:
         conn.close()
     
     async def handle_incoming_dm(self, client: Client, message: Message):
-        """Handle incoming private messages"""
+        """Handle incoming private messages with AI, keywords, and knowledge"""
         # Ignore if message is from yourself
         if message.from_user.is_self:
-            logger.info("Ignoring message from self")
             return
         
         # Ignore if message is outgoing (you sent it)
         if message.outgoing:
-            logger.info("Ignoring outgoing message")
+            return
+        
+        # Only process text messages
+        if not message.text:
+            logger.info("Ignoring non-text message")
             return
         
         user_id = message.from_user.id
         username = message.from_user.username or "Unknown"
+        first_name = message.from_user.first_name or "Dost"
+        user_message = message.text
         
-        logger.info(f"Received DM from {username} (ID: {user_id}): {message.text[:50] if message.text else 'Media'}")
+        logger.info(f"📨 Received DM from {username} (ID: {user_id}): {user_message[:50]}")
         
         # Check rate limiting
         if not self.should_auto_reply(user_id):
-            logger.info(f"Skipping auto-reply for {username} (cooldown active)")
+            logger.info(f"⏳ Skipping reply for {username} (cooldown active)")
             return
         
-        # Send auto-reply
         try:
-            await message.reply_text(self.auto_reply_message)
-            self.record_auto_reply(user_id)
-            logger.info(f"✅ Sent auto-reply to {username} (ID: {user_id})")
+            # Step 1: Check for keyword match (instant response)
+            keyword_response = self.check_keyword_match(user_message)
+            if keyword_response:
+                await message.reply_text(keyword_response)
+                self.record_auto_reply(user_id)
+                self.save_chat_history(user_id, username, user_message, keyword_response)
+                logger.info(f"✅ Sent keyword response to {username}")
+                return
+            
+            # Step 2: Generate AI response (if enabled)
+            if self.use_ai_responses and self.openai_client:
+                await client.send_chat_action(message.chat.id, "typing")
+                
+                # Get conversation history
+                recent_history = self.get_recent_history(user_id, limit=3)
+                custom_knowledge = self.get_bot_knowledge()
+                
+                # Build system prompt (same as main bot)
+                system_prompt = "Tum ek highly intelligent aur helpful AI assistant ho. Tumhe Hindi aur English dono languages mein expert tarike se baat karni aani hai."
+                system_prompt += f"\n\nUser ka naam: {first_name}"
+                if username != "Unknown":
+                    system_prompt += f" (@{username})"
+                system_prompt += "\nNatural conversation mein user ka naam use kar sakte ho jab appropriate ho."
+                
+                if custom_knowledge:
+                    system_prompt += f"\n\n📚 KNOWLEDGE BASE - CRITICAL INSTRUCTIONS:\n"
+                    system_prompt += f"Tumhe niche detailed knowledge base diya gaya hai. Yeh tumhari PRIMARY source of information hai:\n\n"
+                    system_prompt += f"=== START KNOWLEDGE BASE ===\n{custom_knowledge}\n=== END KNOWLEDGE BASE ===\n\n"
+                    system_prompt += f"🎯 RULES FOR USING KNOWLEDGE:\n"
+                    system_prompt += f"1. Jab bhi user kuch poochu, PEHLE knowledge base mein check karo\n"
+                    system_prompt += f"2. Agar knowledge base mein answer mil jaye, toh WAHI detailed answer do\n"
+                    system_prompt += f"3. Knowledge base ki information ko accurately aur completely use karo\n"
+                    system_prompt += f"4. Products, services, pricing, features - SAB knowledge base se hi batana\n"
+                    system_prompt += f"5. AGAR knowledge base mein koi information NAHI hai, tab normal conversation karo\n"
+                else:
+                    system_prompt += "\n\n💬 Normal friendly conversation karo."
+                
+                # Build messages
+                messages = [{"role": "system", "content": system_prompt}]
+                
+                for prev_msg, prev_resp in recent_history:
+                    messages.append({"role": "user", "content": prev_msg})
+                    messages.append({"role": "assistant", "content": prev_resp})
+                
+                messages.append({"role": "user", "content": user_message})
+                
+                # Try API call with rotation
+                max_attempts = len(self.api_keys)
+                ai_response = None
+                
+                for attempt in range(max_attempts):
+                    try:
+                        response = self.openai_client.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=messages,
+                            max_tokens=500,
+                            temperature=0.7
+                        )
+                        ai_response = response.choices[0].message.content
+                        break
+                    except Exception as api_error:
+                        error_str = str(api_error)
+                        
+                        if "429" in error_str or "rate limit" in error_str.lower():
+                            logger.warning(f"⚠️ Rate limit hit on API key #{self.current_key_index + 1}")
+                            
+                            if attempt < max_attempts - 1:
+                                self.rotate_api_key()
+                                logger.info(f"🔄 Retrying with next API key...")
+                                continue
+                            else:
+                                logger.error("❌ All API keys exhausted!")
+                                raise Exception("All API keys exhausted")
+                        else:
+                            raise api_error
+                
+                if ai_response:
+                    await message.reply_text(ai_response)
+                    self.record_auto_reply(user_id)
+                    self.save_chat_history(user_id, username, user_message, ai_response)
+                    logger.info(f"✅ Sent AI response to {username}")
+                else:
+                    raise Exception("No AI response generated")
+            
+            else:
+                # Fallback: Simple message
+                fallback_msg = "Thank you for your message! I'll get back to you soon."
+                await message.reply_text(fallback_msg)
+                self.record_auto_reply(user_id)
+                logger.info(f"✅ Sent fallback response to {username}")
+        
         except Exception as e:
-            logger.error(f"Failed to send auto-reply: {e}")
+            logger.error(f"❌ Error handling message from {username}: {e}")
+            try:
+                await message.reply_text("Sorry, I'm experiencing technical difficulties. Please try again later.")
+            except:
+                pass
     
     def run(self):
         """Start the personal account bot"""
