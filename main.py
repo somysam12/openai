@@ -141,6 +141,25 @@ class TelegramChatBot:
         ''')
         
         cursor.execute('''
+            CREATE TABLE IF NOT EXISTS automated_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                message_type TEXT UNIQUE NOT NULL,
+                message_text TEXT NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS api_key_stats (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key_index INTEGER NOT NULL UNIQUE,
+                usage_count INTEGER DEFAULT 0,
+                last_used DATETIME,
+                rate_limit_hits INTEGER DEFAULT 0
+            )
+        ''')
+        
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS group_registry (
                 group_id INTEGER PRIMARY KEY,
                 title TEXT,
@@ -177,12 +196,95 @@ class TelegramChatBot:
         except sqlite3.OperationalError:
             pass
         
+        try:
+            cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_api_key_stats_key ON api_key_stats(key_index)')
+        except sqlite3.OperationalError:
+            pass
+        
         conn.commit()
         conn.close()
         logger.info("Database initialized successfully")
     
     def is_admin(self, user_id: int) -> bool:
         return user_id == self.admin_id
+    
+    def get_automated_message(self, message_type: str) -> str:
+        """Get automated message by type"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT message_text FROM automated_messages WHERE message_type = ?', (message_type,))
+        result = cursor.fetchone()
+        conn.close()
+        
+        return result[0] if result else None
+    
+    def set_automated_message(self, message_type: str, message_text: str):
+        """Set or update automated message"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO automated_messages (message_type, message_text, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(message_type) DO UPDATE SET
+                message_text = ?,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (message_type, message_text, message_text))
+        
+        conn.commit()
+        conn.close()
+    
+    def get_all_automated_messages(self):
+        """Get all automated messages"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT message_type, message_text, updated_at FROM automated_messages ORDER BY message_type')
+        results = cursor.fetchall()
+        conn.close()
+        
+        return results
+    
+    def track_api_key_usage(self, key_index: int, is_rate_limit: bool = False):
+        """Track API key usage"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        if is_rate_limit:
+            cursor.execute('''
+                INSERT INTO api_key_stats (key_index, usage_count, last_used, rate_limit_hits)
+                VALUES (?, 0, CURRENT_TIMESTAMP, 1)
+                ON CONFLICT(key_index) DO UPDATE SET
+                    rate_limit_hits = rate_limit_hits + 1,
+                    last_used = CURRENT_TIMESTAMP
+            ''', (key_index,))
+        else:
+            cursor.execute('''
+                INSERT INTO api_key_stats (key_index, usage_count, last_used, rate_limit_hits)
+                VALUES (?, 1, CURRENT_TIMESTAMP, 0)
+                ON CONFLICT(key_index) DO UPDATE SET
+                    usage_count = usage_count + 1,
+                    last_used = CURRENT_TIMESTAMP
+            ''', (key_index,))
+        
+        conn.commit()
+        conn.close()
+    
+    def get_api_key_stats(self):
+        """Get API key usage statistics"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT key_index, usage_count, last_used, rate_limit_hits
+            FROM api_key_stats
+            ORDER BY key_index
+        ''')
+        results = cursor.fetchall()
+        conn.close()
+        
+        return results
     
     def get_admin_keyboard(self):
         keyboard = [
@@ -192,26 +294,25 @@ class TelegramChatBot:
             ],
             [
                 InlineKeyboardButton("🗑️ Delete Knowledge", callback_data="admin_delete_knowledge"),
-                InlineKeyboardButton("👥 View Users", callback_data="admin_view_users")
-            ],
-            [
-                InlineKeyboardButton("🔑 View Keywords", callback_data="admin_view_keywords"),
-                InlineKeyboardButton("➕ Add Keyword", callback_data="admin_add_keyword")
-            ],
-            [
-                InlineKeyboardButton("➖ Remove Keyword", callback_data="admin_remove_keyword"),
                 InlineKeyboardButton("💬 Message User", callback_data="admin_message_user")
             ],
             [
-                InlineKeyboardButton("📂 View User Chats", callback_data="admin_view_user_chats"),
-                InlineKeyboardButton("🗑️ Delete Chats", callback_data="admin_delete_chats_menu")
+                InlineKeyboardButton("📝 Auto Messages", callback_data="admin_auto_messages"),
+                InlineKeyboardButton("🔑 API Key Stats", callback_data="admin_api_stats")
             ],
             [
-                InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
-                InlineKeyboardButton("🏘️ Group Sessions", callback_data="admin_group_sessions")
+                InlineKeyboardButton("👥 View Users", callback_data="admin_view_users"),
+                InlineKeyboardButton("📂 View User Chats", callback_data="admin_view_user_chats")
             ],
             [
-                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session"),
+                InlineKeyboardButton("🗑️ Delete Chats", callback_data="admin_delete_chats_menu"),
+                InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast")
+            ],
+            [
+                InlineKeyboardButton("🏘️ Group Sessions", callback_data="admin_group_sessions"),
+                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session")
+            ],
+            [
                 InlineKeyboardButton("🔄 Refresh Panel", callback_data="admin_refresh")
             ]
         ]
@@ -342,67 +443,6 @@ class TelegramChatBot:
         
         return result if result else (None, None, None)
     
-    def get_group_keywords(self):
-        """Get all group keywords with responses"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        try:
-            cursor.execute('SELECT keyword, response FROM group_keywords')
-            results = cursor.fetchall()
-        except sqlite3.OperationalError:
-            cursor.execute('ALTER TABLE group_keywords ADD COLUMN response TEXT')
-            conn.commit()
-            cursor.execute('SELECT keyword, response FROM group_keywords')
-            results = cursor.fetchall()
-        
-        conn.close()
-        return results
-    
-    def add_group_keyword(self, keyword: str, response: str = None):
-        """Add a new group keyword with optional custom response"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('INSERT INTO group_keywords (keyword, response) VALUES (?, ?)', (keyword, response))
-        conn.commit()
-        conn.close()
-    
-    def remove_group_keyword(self, keyword: str):
-        """Remove a group keyword"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('DELETE FROM group_keywords WHERE LOWER(keyword) = LOWER(?)', (keyword,))
-        deleted = cursor.rowcount
-        conn.commit()
-        conn.close()
-        
-        return deleted > 0
-    
-    def check_keyword_match(self, message_text: str) -> tuple:
-        """Check if message contains a keyword and return the keyword and its response"""
-        message_lower = message_text.lower()
-        keywords = self.get_group_keywords()
-        
-        for keyword, response in keywords:
-            if keyword.lower() in message_lower:
-                return (keyword, response)
-        
-        return (None, None)
-    
-    def should_respond_in_group(self, message_text: str, bot_username: str, is_reply_to_bot: bool = False) -> bool:
-        """Check if bot should respond to a group message"""
-        if is_reply_to_bot:
-            return True
-            
-        message_lower = message_text.lower()
-        
-        if f"@{bot_username.lower()}" in message_lower:
-            return True
-        
-        keyword, _ = self.check_keyword_match(message_text)
-        return keyword is not None
     
     def track_group(self, chat_id: int, title: str, username: str, chat_type: str):
         """Track group/supergroup in database"""
@@ -501,15 +541,19 @@ class TelegramChatBot:
                 reply_markup=self.get_admin_keyboard()
             )
         else:
-            welcome_message = (
-                f"🤖 Namaste {user.first_name}!\n\n"
-                "Main aapka AI assistant hoon. Aap mujhse kuch bhi pooch sakte hain!\n\n"
-                "Commands:\n"
-                "/start - Bot ko shuru karein\n"
-                "/help - Madad prapt karein\n"
-                "/clear - Chat history clear karein\n\n"
-                "Bas apna message bhejein aur main jawab doonga! 🚀"
-            )
+            custom_welcome = self.get_automated_message('welcome')
+            if custom_welcome:
+                welcome_message = custom_welcome.replace('{first_name}', user.first_name)
+            else:
+                welcome_message = (
+                    f"🤖 Namaste {user.first_name}!\n\n"
+                    "Main aapka AI assistant hoon. Aap mujhse kuch bhi pooch sakte hain!\n\n"
+                    "Commands:\n"
+                    "/start - Bot ko shuru karein\n"
+                    "/help - Madad prapt karein\n"
+                    "/clear - Chat history clear karein\n\n"
+                    "Bas apna message bhejein aur main jawab doonga! 🚀"
+                )
             await update.message.reply_text(welcome_message)
         
         logger.info(f"User {user.id} ({user.username}) started the bot")
@@ -524,17 +568,21 @@ class TelegramChatBot:
                 reply_markup=self.get_admin_keyboard()
             )
         else:
-            help_text = (
-                "📚 *Kaise istemal karein:*\n\n"
-                "1. Mujhe koi bhi sawal poochein\n"
-                "2. Main AI ki madad se jawab doonga\n"
-                "3. Aapki chat history save rahegi\n\n"
-                "*Commands:*\n"
-                "/start - Bot shuru karein\n"
-                "/help - Yeh message\n"
-                "/clear - Apni chat history clear karein\n\n"
-                "Kuch bhi poochne ke liye bas message type karein! 💬"
-            )
+            custom_help = self.get_automated_message('help')
+            if custom_help:
+                help_text = custom_help
+            else:
+                help_text = (
+                    "📚 *Kaise istemal karein:*\n\n"
+                    "1. Mujhe koi bhi sawal poochein\n"
+                    "2. Main AI ki madad se jawab doonga\n"
+                    "3. Aapki chat history save rahegi\n\n"
+                    "*Commands:*\n"
+                    "/start - Bot shuru karein\n"
+                    "/help - Yeh message\n"
+                    "/clear - Apni chat history clear karein\n\n"
+                    "Kuch bhi poochne ke liye bas message type karein! 💬"
+                )
             await update.message.reply_text(help_text, parse_mode='Markdown')
     
     async def clear_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -747,76 +795,77 @@ class TelegramChatBot:
                 parse_mode='Markdown'
             )
         
-        elif data == "admin_view_keywords":
-            keywords = self.get_group_keywords()
-            if keywords:
-                keyword_text = "🔑 *Group Keywords:*\n\n"
-                for idx, (kw, resp) in enumerate(keywords, 1):
-                    escaped_kw = escape_markdown(kw)
-                    keyword_text += f"{idx}\\. {escaped_kw}\n"
-                    if resp:
-                        escaped_resp = escape_markdown(resp[:50] + "..." if len(resp) > 50 else resp)
-                        keyword_text += f"   📝 Direct: {escaped_resp}\n"
-                    else:
-                        keyword_text += f"   ✨ AI \\+ Knowledge Base\n"
-                keyword_text += f"\n*Total: {len(keywords)} keywords*\n\n"
-                keyword_text += "Bot will respond in groups when these keywords appear\\."
-                await query.edit_message_text(
-                    keyword_text,
-                    reply_markup=self.get_admin_keyboard(),
-                    parse_mode='MarkdownV2'
-                )
-            else:
-                await query.edit_message_text(
-                    "⚠️ *No keywords set\\!*\n\n"
-                    "Bot will only respond in groups when tagged\\.\n"
-                    "Click 'Add Keyword' to add trigger words\\.",
-                    reply_markup=self.get_admin_keyboard(),
-                    parse_mode='MarkdownV2'
-                )
-        
-        elif data == "admin_add_keyword":
-            self.admin_state[user_id] = "waiting_add_keyword"
+        elif data == "admin_auto_messages":
+            all_messages = self.get_all_automated_messages()
+            keyboard = [
+                [InlineKeyboardButton("📝 Edit Welcome Message", callback_data="edit_msg_welcome")],
+                [InlineKeyboardButton("📝 Edit Help Message", callback_data="edit_msg_help")],
+                [InlineKeyboardButton("📋 View All Messages", callback_data="view_all_auto_msgs")],
+                [InlineKeyboardButton("« Back", callback_data="admin_refresh")]
+            ]
             await query.edit_message_text(
-                "➕ *Add Group Keyword*\n\n"
-                "Send in this format:\n"
-                "`keyword | custom response`\n\n"
-                "*Example 1:* `help | Bot help: Contact @tgshaitaan for support!`\n"
-                "→ Bot sends exact response\n\n"
-                "*Example 2:* `price` (AI uses Knowledge Base) ✨\n"
-                "→ Bot searches knowledge for 'price' and replies intelligently\n\n"
-                "📌 *Note:* \n"
-                "- Keywords are case-insensitive\n"
-                "- Use `|` to separate keyword and response\n"
-                "- Without `|`, AI uses Knowledge Base to reply! 🧠\n\n"
-                "Send /cancel to cancel.",
+                "📝 *Automated Messages*\n\n"
+                "Manage bot's automatic responses:\n\n"
+                "• Welcome Message - /start command\n"
+                "• Help Message - /help command\n\n"
+                "Use {first_name} in messages for user's name\n\n"
+                "Choose an option below:",
+                reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode='Markdown'
             )
         
-        elif data == "admin_remove_keyword":
-            keywords = self.get_group_keywords()
-            if not keywords:
-                await query.edit_message_text(
-                    "⚠️ *No keywords to remove\\!*\n\n"
-                    "Add some keywords first\\.",
-                    reply_markup=self.get_admin_keyboard(),
-                    parse_mode='MarkdownV2'
-                )
-                return
+        elif data.startswith("edit_msg_"):
+            message_type = data.replace("edit_msg_", "")
+            self.admin_state[user_id] = f"waiting_auto_msg_{message_type}"
+            current_msg = self.get_automated_message(message_type)
             
-            keyword_text = "➖ *Remove Keyword*\n\n"
-            keyword_text += "Current keywords:\n\n"
-            for idx, (kw, _) in enumerate(keywords, 1):
-                escaped_kw = escape_markdown(kw)
-                keyword_text += f"{idx}\\. {escaped_kw}\n"
-            keyword_text += f"\n*Total: {len(keywords)} keywords*\n\n"
-            keyword_text += "Send the number \\(1, 2, 3\\.\\.\\.\\) of the keyword you want to remove\\.\n"
-            keyword_text += "Send /cancel to cancel\\."
-            
-            self.admin_state[user_id] = "waiting_remove_keyword"
+            msg_name = "Welcome" if message_type == "welcome" else "Help"
             await query.edit_message_text(
-                keyword_text,
-                parse_mode='MarkdownV2'
+                f"✏️ *Edit {msg_name} Message*\n\n"
+                f"Current message:\n"
+                f"```\n{current_msg if current_msg else 'Not set (using default)'}\n```\n\n"
+                f"Send new message text. Use `{{first_name}}` for user's name.\n\n"
+                f"Send /cancel to cancel.",
+                parse_mode='Markdown'
+            )
+        
+        elif data == "view_all_auto_msgs":
+            all_messages = self.get_all_automated_messages()
+            if all_messages:
+                msg_text = "📋 *All Automated Messages:*\n\n"
+                for msg_type, msg_text_db, updated in all_messages:
+                    preview = msg_text_db[:100] + "..." if len(msg_text_db) > 100 else msg_text_db
+                    msg_text += f"*{msg_type.title()}:*\n{preview}\n\n"
+            else:
+                msg_text = "⚠️ No automated messages set yet!\nUsing default messages."
+            
+            await query.edit_message_text(
+                msg_text,
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("« Back", callback_data="admin_auto_messages")]]),
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_api_stats":
+            stats = self.get_api_key_stats()
+            stats_text = "🔑 *API Key Statistics*\n\n"
+            stats_text += f"📊 Total API Keys: {len(self.api_keys)}\n"
+            stats_text += f"🔄 Currently Using: Key #{self.current_key_index + 1}\n\n"
+            
+            if stats:
+                stats_text += "*Usage Details:*\n"
+                for key_idx, usage, last_used, rate_hits in stats:
+                    stats_text += f"\n*Key #{key_idx + 1}:*\n"
+                    stats_text += f"  ✅ Successful calls: {usage}\n"
+                    stats_text += f"  ⚠️ Rate limit hits: {rate_hits}\n"
+                    if last_used:
+                        stats_text += f"  🕒 Last used: {last_used}\n"
+            else:
+                stats_text += "No usage data yet."
+            
+            await query.edit_message_text(
+                stats_text,
+                reply_markup=self.get_admin_keyboard(),
+                parse_mode='Markdown'
             )
         
         elif data == "admin_view_user_chats":
@@ -1037,74 +1086,21 @@ class TelegramChatBot:
                 )
                 return
             
-            elif state == "waiting_add_keyword":
-                if '|' in user_message:
-                    parts = user_message.split('|', 1)
-                    keyword = parts[0].strip()
-                    response = parts[1].strip()
-                else:
-                    keyword = user_message.strip()
-                    response = None
-                
-                self.add_group_keyword(keyword, response)
+            elif state.startswith("waiting_auto_msg_"):
+                message_type = state.replace("waiting_auto_msg_", "")
+                self.set_automated_message(message_type, user_message)
                 del self.admin_state[user.id]
                 
-                if response:
-                    response_info = f"Custom: {response[:50]}..." if len(response) > 50 else response
-                    response_type = "📝 Direct Response"
-                else:
-                    response_info = "AI + Knowledge Base 🧠"
-                    response_type = "✨ Intelligent Response"
-                
+                msg_name = "Welcome" if message_type == "welcome" else "Help"
                 await update.message.reply_text(
-                    f"✅ *Keyword Added!*\n\n"
-                    f"Keyword: `{keyword}`\n"
-                    f"Type: {response_type}\n"
-                    f"Response: {response_info}\n\n"
-                    f"Bot will now respond in groups when this word appears!",
+                    f"✅ *{msg_name} Message Updated!*\n\n"
+                    f"New message:\n{user_message}\n\n"
+                    f"Users will now see this message!",
                     reply_markup=self.get_admin_keyboard(),
                     parse_mode='Markdown'
                 )
-                logger.info(f"Admin {user.id} added keyword: {keyword} with response: {response}")
+                logger.info(f"Admin {user.id} updated {message_type} message")
                 return
-            
-            elif state == "waiting_remove_keyword":
-                try:
-                    keyword_num = int(user_message.strip())
-                    keywords = self.get_group_keywords()
-                    
-                    if keyword_num < 1 or keyword_num > len(keywords):
-                        await update.message.reply_text(
-                            f"❌ Invalid number! Please send a number between 1 and {len(keywords)}.",
-                            reply_markup=self.get_admin_keyboard()
-                        )
-                        return
-                    
-                    keyword_to_remove, _ = keywords[keyword_num - 1]
-                    
-                    if self.remove_group_keyword(keyword_to_remove):
-                        del self.admin_state[user.id]
-                        await update.message.reply_text(
-                            f"✅ *Keyword Removed!*\n\n"
-                            f"Removed: {keyword_to_remove}\n\n"
-                            f"Remaining: {len(keywords) - 1} keywords",
-                            reply_markup=self.get_admin_keyboard(),
-                            parse_mode='Markdown'
-                        )
-                        logger.info(f"Admin {user.id} removed keyword: {keyword_to_remove}")
-                    else:
-                        await update.message.reply_text(
-                            "❌ Failed to remove keyword!",
-                            reply_markup=self.get_admin_keyboard()
-                        )
-                    return
-                    
-                except ValueError:
-                    await update.message.reply_text(
-                        "❌ Please send a valid number!",
-                        reply_markup=self.get_admin_keyboard()
-                    )
-                    return
             
             elif state == "waiting_username_for_chats":
                 username = user_message.strip().replace('@', '')
@@ -1233,8 +1229,6 @@ class TelegramChatBot:
                     logger.error(f"Failed to forward group message to admin: {e}")
         
         is_reply_to_bot = False
-        keyword_detected = None
-        use_knowledge_for_keyword = False
         
         if is_group:
             bot_info = await context.bot.get_me()
@@ -1246,56 +1240,48 @@ class TelegramChatBot:
                     is_reply_to_bot = True
                     logger.info(f"Group message is reply to bot from {user.id}")
             
-            keyword, response = self.check_keyword_match(user_message)
-            if keyword:
-                keyword_detected = keyword
-                if response:
-                    logger.info(f"Keyword matched: {keyword}, using direct response: {response[:50]}")
-                else:
-                    use_knowledge_for_keyword = True
-                    logger.info(f"Keyword matched: {keyword}, will use AI + knowledge")
+            is_mentioned = f"@{bot_username.lower()}" in user_message.lower()
             
-            if not self.should_respond_in_group(user_message, bot_username, is_reply_to_bot):
-                logger.info(f"Ignoring group message (no keyword/tag/reply): {user_message[:50]}")
+            if not (is_reply_to_bot or is_mentioned):
+                logger.info(f"Ignoring group message (not mentioned/replied): {user_message[:50]}")
                 return
         
         await update.message.chat.send_action("typing")
         
         try:
-            if keyword_detected and not use_knowledge_for_keyword:
-                keyword, response = self.check_keyword_match(user_message)
-                final_response = response
-                self.save_chat_history(user.id, user.username or "Unknown", user_message, final_response)
-                await update.message.reply_text(final_response)
-                logger.info(f"Sent direct keyword response to {user.id}")
+            recent_history = self.get_recent_history(user.id, limit=3)
+            custom_knowledge = self.get_bot_knowledge()
+            
+            username_db, first_name_db, last_name_db = self.get_user_info(user.id)
+            user_first_name = user.first_name or first_name_db or "Dost"
+            user_username = user.username or username_db
+            
+            system_prompt = "Tum ek highly intelligent aur helpful AI assistant ho. Tumhe Hindi aur English dono languages mein expert tarike se baat karni aani hai."
+            
+            system_prompt += f"\n\nUser ka naam: {user_first_name}"
+            if user_username:
+                system_prompt += f" (@{user_username})"
+            system_prompt += "\nNatural conversation mein user ka naam use kar sakte ho jab appropriate ho."
+            
+            system_prompt += f"\n\n🔐 IMPORTANT - OWNER RESPECT: Tumhare owner ka naam @tgshaitaan hai. Jab bhi owner baat kare ya unka zikr ho, tum unhe highest respect dena - 'Boss', 'Sir', ya 'Owner' kehke address karna hai."
+            
+            if is_group:
+                system_prompt += "\n\n👥 GROUP CONTEXT: Yeh ek group chat hai. Natural tareeke se interact karo. Owner @tgshaitaan ko hamesha special respect do."
+            
+            if custom_knowledge:
+                system_prompt += f"\n\n📚 KNOWLEDGE BASE - CRITICAL INSTRUCTIONS:\n"
+                system_prompt += f"Tumhe niche detailed knowledge base diya gaya hai. Yeh tumhari PRIMARY source of information hai:\n\n"
+                system_prompt += f"=== START KNOWLEDGE BASE ===\n{custom_knowledge}\n=== END KNOWLEDGE BASE ===\n\n"
+                system_prompt += f"🎯 RULES FOR USING KNOWLEDGE:\n"
+                system_prompt += f"1. Jab bhi user kuch poochu, PEHLE knowledge base mein check karo\n"
+                system_prompt += f"2. Agar knowledge base mein answer mil jaye, toh WAHI detailed answer do\n"
+                system_prompt += f"3. Knowledge base ki information ko accurately aur completely use karo\n"
+                system_prompt += f"4. Products, services, pricing, features - SAB knowledge base se hi batana\n"
+                system_prompt += f"5. AGAR knowledge base mein koi information NAHI hai, tab normal conversation karo\n"
+                system_prompt += f"6. User ko helpful aur detailed response do, knowledge base ke saath match karte hue\n\n"
+                system_prompt += f"⚡ Jo bhi user poochu, knowledge base ko thoroughly check karo aur relevant information extract karke clear answer do!"
             else:
-                recent_history = self.get_recent_history(user.id, limit=3)
-                custom_knowledge = self.get_bot_knowledge()
-                
-                username_db, first_name_db, last_name_db = self.get_user_info(user.id)
-                user_first_name = user.first_name or first_name_db or "Dost"
-                user_username = user.username or username_db
-                
-                system_prompt = "Tum ek helpful aur friendly AI assistant ho. Tum Hindi aur English dono mein baat kar sakte ho."
-                
-                system_prompt += f"\n\nUser ka naam: {user_first_name}"
-                if user_username:
-                    system_prompt += f" (@{user_username})"
-                system_prompt += "\nJab zarurat ho, tum user ka naam use kar sakte ho apne response mein natural tareeke se."
-                
-                system_prompt += f"\n\nIMPORTANT: Tumhare owner ka naam @tgshaitaan hai. Jab bhi owner ka zikr ho ya unka message ho, tum unhe full respect dena. Unhe 'Boss', 'Sir', ya 'Owner' kehke address karna."
-                
-                if is_group:
-                    system_prompt += "\n\nYeh ek group chat hai. Natural tareeke se sabke saath baat karo. Agar @tgshaitaan (owner) baat kar rahe hain, unhe special respect do."
-                
-                if use_knowledge_for_keyword and keyword_detected:
-                    system_prompt += f"\n\n🔍 KEYWORD DETECTED: '{keyword_detected}' - User ne iss keyword ka zikr kiya hai. Tumhe apne knowledge base se iss keyword se related information dhoond ke detailed aur helpful response dena hai."
-                
-                if custom_knowledge:
-                    system_prompt += f"\n\nIMPORTANT - Tumhe yeh information diya gaya hai:\n{custom_knowledge}\n\nJab bhi user tumse kuch pooche, tum yahi information use karna aur unhe products ya services ke baare mein batana."
-                    
-                    if use_knowledge_for_keyword and keyword_detected:
-                        system_prompt += f"\n\nABHI KE MESSAGE MEIN '{keyword_detected}' keyword detect hua hai, toh tumhe upar diye gaye knowledge base se iss keyword ke related jaankari deni hai. Agar knowledge base mein iske baare mein kuch hai toh woh batana, warna politely batana ki tumhare paas abhi iske baare mein information nahi hai."
+                system_prompt += "\n\n💬 Normal friendly conversation karo kyunki abhi knowledge base empty hai."
                 
                 messages = [
                     {
@@ -1323,6 +1309,7 @@ class TelegramChatBot:
                             temperature=0.7
                         )
                         ai_response = response.choices[0].message.content
+                        self.track_api_key_usage(self.current_key_index, is_rate_limit=False)
                         break  # Success! Exit loop
                         
                     except Exception as api_error:
@@ -1331,6 +1318,7 @@ class TelegramChatBot:
                         # Check if it's a rate limit error (429)
                         if "429" in error_str or "rate limit" in error_str.lower():
                             logger.warning(f"⚠️ Rate limit hit on API key #{self.current_key_index + 1}")
+                            self.track_api_key_usage(self.current_key_index, is_rate_limit=True)
                             
                             if attempt < max_attempts - 1:
                                 # Rotate to next key and retry
