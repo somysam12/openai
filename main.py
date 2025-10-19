@@ -320,20 +320,22 @@ class TelegramChatBot:
             if all_knowledge:
                 knowledge_text = "📚 *All Bot Knowledge:*\n\n"
                 for idx, (kid, ktext, created) in enumerate(all_knowledge, 1):
-                    preview = ktext[:100] + "..." if len(ktext) > 100 else ktext
-                    knowledge_text += f"{idx}. {preview}\n\n"
-                knowledge_text += f"*Total: {len(all_knowledge)} knowledge entries*\n\n"
-                knowledge_text += "Use 'Add Knowledge' to add more or 'Delete Knowledge' to remove."
+                    preview = ktext[:150] + "..." if len(ktext) > 150 else ktext
+                    escaped_preview = escape_markdown(preview)
+                    knowledge_text += f"{idx}\\. {escaped_preview}\n\n"
+                knowledge_text += f"\n*Total: {len(all_knowledge)} knowledge entries*\n\n"
+                knowledge_text += "Use 'Add Knowledge' to add more or 'Delete Knowledge' to remove\\."
                 await query.edit_message_text(
                     knowledge_text,
                     reply_markup=self.get_admin_keyboard(),
-                    parse_mode='Markdown'
+                    parse_mode='MarkdownV2'
                 )
             else:
                 await query.edit_message_text(
-                    "⚠️ *No knowledge set yet!*\n\n"
-                    "Click 'Add Knowledge' to add information.",
-                    reply_markup=self.get_admin_keyboard()
+                    "⚠️ *No knowledge set yet\\!*\n\n"
+                    "Click 'Add Knowledge' to add information\\.",
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='MarkdownV2'
                 )
         
         elif data == "admin_set_knowledge":
@@ -354,25 +356,27 @@ class TelegramChatBot:
             all_knowledge = self.get_all_bot_knowledge()
             if not all_knowledge:
                 await query.edit_message_text(
-                    "⚠️ *No knowledge to delete!*\n\n"
-                    "Add some knowledge first.",
-                    reply_markup=self.get_admin_keyboard()
+                    "⚠️ *No knowledge to delete\\!*\n\n"
+                    "Add some knowledge first\\.",
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='MarkdownV2'
                 )
                 return
             
             knowledge_text = "🗑️ *Delete Knowledge*\n\n"
             knowledge_text += "Current knowledge entries:\n\n"
             for idx, (kid, ktext, created) in enumerate(all_knowledge, 1):
-                preview = ktext[:80] + "..." if len(ktext) > 80 else ktext
-                knowledge_text += f"{idx}. {preview}\n\n"
+                preview = ktext[:100] + "..." if len(ktext) > 100 else ktext
+                escaped_preview = escape_markdown(preview)
+                knowledge_text += f"{idx}\\. {escaped_preview}\n\n"
             knowledge_text += f"\n*Total: {len(all_knowledge)} entries*\n\n"
-            knowledge_text += "Send the number (1, 2, 3...) of the knowledge you want to delete.\n"
-            knowledge_text += "Send /cancel to cancel."
+            knowledge_text += "Send the number \\(1, 2, 3\\.\\.\\.\\) of the knowledge you want to delete\\.\n"
+            knowledge_text += "Send /cancel to cancel\\."
             
             self.admin_state[user_id] = "waiting_delete_knowledge"
             await query.edit_message_text(
                 knowledge_text,
-                parse_mode='Markdown'
+                parse_mode='MarkdownV2'
             )
         
         elif data == "admin_view_users":
@@ -538,12 +542,13 @@ class TelegramChatBot:
                     if self.delete_bot_knowledge(knowledge_id):
                         del self.admin_state[user.id]
                         preview = deleted_text[:100] + "..." if len(deleted_text) > 100 else deleted_text
+                        escaped_preview = escape_markdown(preview)
                         await update.message.reply_text(
-                            f"✅ *Knowledge Deleted!*\n\n"
-                            f"Deleted entry #{knowledge_num}:\n{preview}\n\n"
+                            f"✅ *Knowledge Deleted\\!*\n\n"
+                            f"Deleted entry \\#{knowledge_num}:\n{escaped_preview}\n\n"
                             f"Remaining: {len(all_knowledge) - 1} entries",
                             reply_markup=self.get_admin_keyboard(),
-                            parse_mode='Markdown'
+                            parse_mode='MarkdownV2'
                         )
                         logger.info(f"Admin {user.id} deleted knowledge #{knowledge_num}")
                     else:
