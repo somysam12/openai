@@ -232,6 +232,22 @@ class TelegramChatBot:
         except sqlite3.OperationalError:
             pass
         
+        # Add deactivation tracking columns
+        try:
+            cursor.execute('ALTER TABLE api_key_stats ADD COLUMN is_deactivated INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('ALTER TABLE api_key_stats ADD COLUMN deactivation_reason TEXT')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('ALTER TABLE api_key_stats ADD COLUMN deactivated_at DATETIME')
+        except sqlite3.OperationalError:
+            pass
+        
         conn.commit()
         conn.close()
         logger.info("Database initialized successfully")
