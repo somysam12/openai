@@ -379,6 +379,25 @@ class TelegramChatBot:
         conn.commit()
         conn.close()
     
+    def mark_api_key_deactivated(self, key_index: int, reason: str):
+        """Mark an API key as deactivated in the database"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO api_key_stats (key_index, is_deactivated, deactivation_reason, deactivated_at, 
+                                       usage_count, rate_limit_hits)
+            VALUES (?, 1, ?, CURRENT_TIMESTAMP, 0, 0)
+            ON CONFLICT(key_index) DO UPDATE SET
+                is_deactivated = 1,
+                deactivation_reason = ?,
+                deactivated_at = CURRENT_TIMESTAMP
+        ''', (key_index, reason, reason))
+        
+        conn.commit()
+        conn.close()
+        logger.warning(f"🔴 API key #{key_index + 1} marked as deactivated: {reason}")
+    
     def get_api_key_stats(self):
         """Get detailed API key usage statistics with token tracking"""
         from datetime import datetime, timedelta
@@ -1726,12 +1745,15 @@ class TelegramChatBot:
                         if "401" in error_str or "deactivated" in error_str.lower():
                             reason = "account_deactivated"
                             logger.warning(f"⚠️ API key #{self.current_key_index + 1} - Account deactivated (401)")
+                            self.mark_api_key_deactivated(self.current_key_index, reason)
                         elif "403" in error_str:
                             reason = "forbidden"
                             logger.warning(f"⚠️ API key #{self.current_key_index + 1} - Forbidden (403)")
+                            self.mark_api_key_deactivated(self.current_key_index, reason)
                         elif "invalid_api_key" in error_str.lower():
                             reason = "invalid_key"
                             logger.warning(f"⚠️ API key #{self.current_key_index + 1} - Invalid API key")
+                            self.mark_api_key_deactivated(self.current_key_index, reason)
                         else:
                             reason = "rate_limit"
                             logger.warning(f"⚠️ API key #{self.current_key_index + 1} - Rate limit (429)")
