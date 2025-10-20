@@ -158,6 +158,31 @@ class MultiAccountManager:
         
         return None
     
+    def get_account_knowledge(self, account_id: int):
+        """Get account-specific knowledge from database"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT knowledge_text
+            FROM account_knowledge
+            WHERE account_id = ? AND status = 'active'
+            ORDER BY 
+                CASE priority 
+                    WHEN 'super' THEN 0 
+                    ELSE 1 
+                END,
+                updated_at DESC
+        ''', (account_id,))
+        
+        results = cursor.fetchall()
+        conn.close()
+        
+        if not results:
+            return None
+        
+        return '\n\n'.join([row[0] for row in results])
+    
     async def handle_dm_message(self, client: Client, message: Message, account_id: int, account_name: str):
         """Handle incoming DM message"""
         try:
@@ -167,6 +192,10 @@ class MultiAccountManager:
             
             # Only respond to private messages
             if message.chat.type != "private":
+                return
+            
+            # Ignore non-text messages
+            if not message.text:
                 return
             
             # Check for keyword matches first
@@ -181,13 +210,19 @@ class MultiAccountManager:
             if self.openai_client:
                 await client.send_chat_action(message.chat.id, ChatAction.TYPING)
                 
-                # Get knowledge base
-                knowledge = self.get_bot_knowledge(bot_type='dm')
+                # Get account-specific knowledge first, then global DM knowledge
+                account_knowledge = self.get_account_knowledge(account_id)
+                global_knowledge = self.get_bot_knowledge(bot_type='dm')
                 
                 system_prompt = "Tum ek highly intelligent aur helpful AI assistant ho. Tumhe Hindi aur English dono languages mein expert tarike se baat karni aani hai."
                 
-                if knowledge:
-                    system_prompt += f"\n\n📚 KNOWLEDGE BASE:\n{knowledge}\n\n"
+                # Priority: Account-specific knowledge > Global DM knowledge
+                if account_knowledge:
+                    system_prompt += f"\n\n🔥 ACCOUNT-SPECIFIC KNOWLEDGE (HIGHEST PRIORITY):\n{account_knowledge}\n\n"
+                    system_prompt += "⚠️ IMPORTANT: Follow account-specific knowledge FIRST!"
+                
+                if global_knowledge:
+                    system_prompt += f"\n\n📚 GLOBAL KNOWLEDGE:\n{global_knowledge}\n\n"
                     system_prompt += "Use this knowledge to answer questions accurately."
                 
                 messages = [

@@ -88,9 +88,18 @@ class TelegramChatBot:
         logger.warning(f"🔄 Rotated to API key #{self.current_key_index + 1} (out of {len(self.api_keys)} keys)")
         return self.current_key_index + 1
     
+    def get_db_connection(self):
+        """Get database connection with foreign keys enabled"""
+        conn = sqlite3.connect(self.db_path)
+        conn.execute('PRAGMA foreign_keys = ON')
+        return conn
+    
     def init_database(self):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+        
+        # Enable foreign key constraints
+        cursor.execute('PRAGMA foreign_keys = ON')
         
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS chat_history (
@@ -191,6 +200,25 @@ class TelegramChatBot:
                 error_message TEXT
             )
         ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS account_knowledge (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER NOT NULL,
+                title TEXT,
+                knowledge_text TEXT NOT NULL,
+                priority TEXT DEFAULT 'regular',
+                status TEXT DEFAULT 'active',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (account_id) REFERENCES pyrogram_accounts(id) ON DELETE CASCADE
+            )
+        ''')
+        
+        try:
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_account_knowledge_account ON account_knowledge(account_id, priority, updated_at DESC)')
+        except sqlite3.OperationalError:
+            pass
         
         try:
             cursor.execute('ALTER TABLE chat_history ADD COLUMN message_role TEXT DEFAULT "user"')
@@ -574,6 +602,119 @@ class TelegramChatBot:
         
         conn.commit()
         conn.close()
+    
+    def add_account_knowledge(self, account_id: int, title: str, knowledge_text: str, priority: str = 'regular'):
+        """Add knowledge for a specific Pyrogram account"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO account_knowledge (account_id, title, knowledge_text, priority, status, updated_at)
+            VALUES (?, ?, ?, ?, 'active', CURRENT_TIMESTAMP)
+        ''', (account_id, title, knowledge_text, priority))
+        
+        conn.commit()
+        knowledge_id = cursor.lastrowid
+        conn.close()
+        logger.info(f"✅ Added {priority} knowledge for account #{account_id}: {title}")
+        return knowledge_id
+    
+    def get_account_knowledge_list(self, account_id: int, priority_filter: str = None):
+        """Get knowledge entries for a specific account"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        if priority_filter:
+            cursor.execute('''
+                SELECT id, title, knowledge_text, priority, status, updated_at
+                FROM account_knowledge
+                WHERE account_id = ? AND priority = ?
+                ORDER BY priority DESC, updated_at DESC
+            ''', (account_id, priority_filter))
+        else:
+            cursor.execute('''
+                SELECT id, title, knowledge_text, priority, status, updated_at
+                FROM account_knowledge
+                WHERE account_id = ?
+                ORDER BY 
+                    CASE priority 
+                        WHEN 'super' THEN 0 
+                        ELSE 1 
+                    END,
+                    updated_at DESC
+            ''', (account_id,))
+        
+        results = cursor.fetchall()
+        conn.close()
+        
+        entries = []
+        for row in results:
+            kid, title, text, priority, status, updated_at = row
+            entries.append({
+                'id': kid,
+                'title': title or f"Knowledge #{kid}",
+                'text': text,
+                'priority': priority,
+                'status': status,
+                'updated_at': updated_at
+            })
+        
+        return entries
+    
+    def delete_account_knowledge(self, knowledge_id: int):
+        """Delete account knowledge by ID"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM account_knowledge WHERE id = ?', (knowledge_id,))
+        deleted = cursor.rowcount
+        
+        conn.commit()
+        conn.close()
+        return deleted > 0
+    
+    def toggle_account_knowledge_status(self, knowledge_id: int):
+        """Toggle account knowledge status between active/inactive"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE account_knowledge 
+            SET status = CASE 
+                WHEN status = 'active' THEN 'inactive'
+                ELSE 'active'
+            END,
+            updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (knowledge_id,))
+        
+        conn.commit()
+        conn.close()
+    
+    def get_account_knowledge_for_dm(self, account_id: int):
+        """Get active knowledge for DM bot responses"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT knowledge_text
+            FROM account_knowledge
+            WHERE account_id = ? AND status = 'active'
+            ORDER BY 
+                CASE priority 
+                    WHEN 'super' THEN 0 
+                    ELSE 1 
+                END,
+                updated_at DESC
+        ''', (account_id,))
+        
+        results = cursor.fetchall()
+        conn.close()
+        
+        if not results:
+            return None
+        
+        return '\n\n'.join([row[0] for row in results])
     
     async def show_super_knowledge_manage(self, query_or_message, user_id: int, knowledge_id: int, context=None):
         """Show super knowledge management interface"""
@@ -2316,24 +2457,81 @@ class TelegramChatBot:
                 
                 self.admin_state[user.id] = f"waiting_super_knowledge_scope:{title}|||{knowledge_text}"
                 
-                keyboard = [
-                    [InlineKeyboardButton("🤖 Main Bot Only", callback_data="sk_scope_main_only")],
-                    [InlineKeyboardButton("💬 DM Bot Only", callback_data="sk_scope_dm_only")],
-                    [InlineKeyboardButton("🤝 Both Bots", callback_data="sk_scope_both")],
-                    [InlineKeyboardButton("« Cancel", callback_data="admin_refresh")]
-                ]
-                
                 await update.message.reply_text(
                     f"✅ *Knowledge Content Received!*\n\n"
                     f"Step 3/3: Choose TARGET SCOPE\n\n"
-                    f"*Where should this knowledge be applied?*\n"
-                    f"• Main Bot Only - Only for main Telegram bot\n"
-                    f"• DM Bot Only - Only for Pyrogram DM bots\n"
-                    f"• Both Bots - Apply to all bots\n\n"
-                    f"Select an option below:",
-                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    f"*Where should this knowledge be applied?*\n\n"
+                    f"Send one of these options:\n"
+                    f"1️⃣ `main` - Main Bot Only (Telegram bot only)\n"
+                    f"2️⃣ `dm` - DM Bot Only (Pyrogram accounts only)\n"
+                    f"3️⃣ `both` - Both Bots (Apply everywhere)\n\n"
+                    f"*Example:* Just type `both` or `dm` or `main`\n\n"
+                    f"Send /cancel to cancel.",
                     parse_mode='Markdown'
                 )
+                return
+            
+            elif state.startswith("waiting_super_knowledge_scope:"):
+                scope_input = user_message.strip().lower()
+                
+                scope_mapping = {
+                    'main': 'main_only',
+                    'main_only': 'main_only',
+                    'dm': 'dm_only',
+                    'dm_only': 'dm_only',
+                    'both': 'both',
+                    '1': 'main_only',
+                    '2': 'dm_only',
+                    '3': 'both'
+                }
+                
+                scope = scope_mapping.get(scope_input)
+                
+                if not scope:
+                    await update.message.reply_text(
+                        "❌ Invalid choice! Please send:\n"
+                        "• `main` for Main Bot Only\n"
+                        "• `dm` for DM Bot Only\n"
+                        "• `both` for Both Bots\n\n"
+                        "Or send /cancel to cancel.",
+                        parse_mode='Markdown'
+                    )
+                    return
+                
+                state_data = self.admin_state[user.id].replace("waiting_super_knowledge_scope:", "")
+                parts = state_data.split("|||")
+                if len(parts) != 2:
+                    await update.message.reply_text(
+                        "❌ Error! Please start again.",
+                        reply_markup=self.get_admin_keyboard()
+                    )
+                    del self.admin_state[user.id]
+                    return
+                
+                title, knowledge_text = parts
+                
+                knowledge_id = self.add_super_knowledge(title, knowledge_text, scope)
+                
+                del self.admin_state[user.id]
+                
+                scope_map = {
+                    'main_only': '🤖 Main Bot Only',
+                    'dm_only': '💬 DM Bot Only',
+                    'both': '🤝 Both Bots'
+                }
+                scope_text = scope_map.get(scope, scope)
+                
+                await update.message.reply_text(
+                    f"✅ *SUPER KNOWLEDGE ADDED!*\n\n"
+                    f"*ID:* #{knowledge_id}\n"
+                    f"*Title:* {title}\n"
+                    f"*Scope:* {scope_text}\n\n"
+                    f"*Content Preview:*\n{knowledge_text[:200]}{'...' if len(knowledge_text) > 200 else ''}\n\n"
+                    f"✅ This MANDATORY knowledge is now ACTIVE and will be applied to bot responses!",
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='Markdown'
+                )
+                logger.info(f"Admin {user.id} added super knowledge #{knowledge_id}: {title} (scope: {scope})")
                 return
             
             elif state == "waiting_super_knowledge_id":
