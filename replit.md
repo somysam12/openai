@@ -67,17 +67,29 @@ The system employs a dual architecture to support both traditional bot deploymen
 ## Super Knowledge Management System
 - Added priority-based knowledge system with `priority='super'` flag
 - Implemented scope targeting: `main_only`, `dm_only`, or `both`
+- **Changed to text-based scope selection**: Users type "main", "dm", or "both" instead of clicking buttons to prevent message bypassing
 - Created admin UI for adding, managing, and deleting super knowledge entries
 - Integrated super knowledge as highest priority in AI prompts
 - Added status control (active/inactive) for knowledge entries
 
+## Per-Account Knowledge System
+- Created `account_knowledge` table with foreign key constraints to `pyrogram_accounts`
+- Each Pyrogram account now has separate knowledge and super knowledge databases
+- Implemented helper methods: `add_account_knowledge()`, `get_account_knowledge_list()`, `delete_account_knowledge()`, `toggle_account_knowledge_status()`
+- Account-specific knowledge has higher priority than global DM knowledge in AI prompts
+- Admin can manage knowledge separately for each DM bot account
+
 ## Multi-Account Pyrogram DM Bot Manager
 - Created `pyrogram_accounts` database table with session tracking
 - Built admin panel for adding up to 5 phone numbers with account names
+- **Fully automated Pyrogram authentication**: Bot collects API ID, API hash, phone number, and OTP directly from admin via chat
+- Created `pyrogram_auto_auth.py` module for automated session creation and storage
 - Implemented duplicate phone number validation
 - Added activate/deactivate toggle controls per account
 - Created `multi_account_manager.py` backend runner for concurrent Pyrogram clients
-- Integrated knowledge base filtering by scope (dm_only/both)
+- Integrated per-account knowledge base with priority over global knowledge
 - Added keyword matching and AI response handling for DM bots
 - Implemented reply count tracking and error message storage
 - Added delete account functionality with confirmation
+- **Security hardening**: Removed sensitive logging (phone_code_hash), added null checks for non-text messages
+- **Database integrity**: Enabled foreign key constraints with `get_db_connection()` helper method for CASCADE deletion
