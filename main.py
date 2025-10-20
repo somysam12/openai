@@ -155,7 +155,12 @@ class TelegramChatBot:
                 key_index INTEGER NOT NULL UNIQUE,
                 usage_count INTEGER DEFAULT 0,
                 last_used DATETIME,
-                rate_limit_hits INTEGER DEFAULT 0
+                rate_limit_hits INTEGER DEFAULT 0,
+                tokens_used_today INTEGER DEFAULT 0,
+                tokens_input_today INTEGER DEFAULT 0,
+                tokens_output_today INTEGER DEFAULT 0,
+                daily_reset_time DATETIME,
+                total_tokens_lifetime INTEGER DEFAULT 0
             )
         ''')
         
@@ -198,6 +203,32 @@ class TelegramChatBot:
         
         try:
             cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_api_key_stats_key ON api_key_stats(key_index)')
+        except sqlite3.OperationalError:
+            pass
+        
+        # Add token tracking columns if they don't exist
+        try:
+            cursor.execute('ALTER TABLE api_key_stats ADD COLUMN tokens_used_today INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('ALTER TABLE api_key_stats ADD COLUMN tokens_input_today INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('ALTER TABLE api_key_stats ADD COLUMN tokens_output_today INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('ALTER TABLE api_key_stats ADD COLUMN daily_reset_time DATETIME')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('ALTER TABLE api_key_stats ADD COLUMN total_tokens_lifetime INTEGER DEFAULT 0')
         except sqlite3.OperationalError:
             pass
         
@@ -246,45 +277,151 @@ class TelegramChatBot:
         
         return results
     
-    def track_api_key_usage(self, key_index: int, is_rate_limit: bool = False):
-        """Track API key usage"""
+    def track_api_key_usage(self, key_index: int, is_rate_limit: bool = False, tokens_input: int = 0, tokens_output: int = 0):
+        """Track API key usage with token counting and daily reset"""
+        from datetime import datetime, timedelta
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        if is_rate_limit:
-            cursor.execute('''
-                INSERT INTO api_key_stats (key_index, usage_count, last_used, rate_limit_hits)
-                VALUES (?, 0, CURRENT_TIMESTAMP, 1)
-                ON CONFLICT(key_index) DO UPDATE SET
-                    rate_limit_hits = rate_limit_hits + 1,
-                    last_used = CURRENT_TIMESTAMP
-            ''', (key_index,))
+        # Get current stats for this key
+        cursor.execute('SELECT daily_reset_time, tokens_used_today FROM api_key_stats WHERE key_index = ?', (key_index,))
+        result = cursor.fetchone()
+        
+        # Check if daily reset is needed (24 hours passed)
+        should_reset = False
+        if result and result[0]:
+            last_reset = datetime.fromisoformat(result[0])
+            if datetime.now() - last_reset >= timedelta(hours=24):
+                should_reset = True
         else:
-            cursor.execute('''
-                INSERT INTO api_key_stats (key_index, usage_count, last_used, rate_limit_hits)
-                VALUES (?, 1, CURRENT_TIMESTAMP, 0)
-                ON CONFLICT(key_index) DO UPDATE SET
-                    usage_count = usage_count + 1,
-                    last_used = CURRENT_TIMESTAMP
-            ''', (key_index,))
+            should_reset = True  # First time tracking
+        
+        tokens_total = tokens_input + tokens_output
+        
+        if should_reset:
+            # Reset daily counters
+            if is_rate_limit:
+                cursor.execute('''
+                    INSERT INTO api_key_stats (key_index, usage_count, last_used, rate_limit_hits, 
+                                               tokens_used_today, tokens_input_today, tokens_output_today,
+                                               daily_reset_time, total_tokens_lifetime)
+                    VALUES (?, 0, CURRENT_TIMESTAMP, 1, 0, 0, 0, CURRENT_TIMESTAMP, ?)
+                    ON CONFLICT(key_index) DO UPDATE SET
+                        rate_limit_hits = rate_limit_hits + 1,
+                        last_used = CURRENT_TIMESTAMP,
+                        tokens_used_today = 0,
+                        tokens_input_today = 0,
+                        tokens_output_today = 0,
+                        daily_reset_time = CURRENT_TIMESTAMP,
+                        total_tokens_lifetime = total_tokens_lifetime + ?
+                ''', (key_index, tokens_total, tokens_total))
+            else:
+                cursor.execute('''
+                    INSERT INTO api_key_stats (key_index, usage_count, last_used, rate_limit_hits,
+                                               tokens_used_today, tokens_input_today, tokens_output_today,
+                                               daily_reset_time, total_tokens_lifetime)
+                    VALUES (?, 1, CURRENT_TIMESTAMP, 0, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+                    ON CONFLICT(key_index) DO UPDATE SET
+                        usage_count = usage_count + 1,
+                        last_used = CURRENT_TIMESTAMP,
+                        tokens_used_today = ?,
+                        tokens_input_today = ?,
+                        tokens_output_today = ?,
+                        daily_reset_time = CURRENT_TIMESTAMP,
+                        total_tokens_lifetime = total_tokens_lifetime + ?
+                ''', (key_index, tokens_total, tokens_input, tokens_output, tokens_total, 
+                      tokens_total, tokens_input, tokens_output, tokens_total))
+        else:
+            # Increment daily counters
+            if is_rate_limit:
+                cursor.execute('''
+                    INSERT INTO api_key_stats (key_index, usage_count, last_used, rate_limit_hits,
+                                               tokens_used_today, tokens_input_today, tokens_output_today,
+                                               daily_reset_time, total_tokens_lifetime)
+                    VALUES (?, 0, CURRENT_TIMESTAMP, 1, 0, 0, 0, CURRENT_TIMESTAMP, ?)
+                    ON CONFLICT(key_index) DO UPDATE SET
+                        rate_limit_hits = rate_limit_hits + 1,
+                        last_used = CURRENT_TIMESTAMP,
+                        total_tokens_lifetime = total_tokens_lifetime + ?
+                ''', (key_index, tokens_total, tokens_total))
+            else:
+                cursor.execute('''
+                    INSERT INTO api_key_stats (key_index, usage_count, last_used, rate_limit_hits,
+                                               tokens_used_today, tokens_input_today, tokens_output_today,
+                                               daily_reset_time, total_tokens_lifetime)
+                    VALUES (?, 1, CURRENT_TIMESTAMP, 0, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+                    ON CONFLICT(key_index) DO UPDATE SET
+                        usage_count = usage_count + 1,
+                        last_used = CURRENT_TIMESTAMP,
+                        tokens_used_today = tokens_used_today + ?,
+                        tokens_input_today = tokens_input_today + ?,
+                        tokens_output_today = tokens_output_today + ?,
+                        total_tokens_lifetime = total_tokens_lifetime + ?
+                ''', (key_index, tokens_total, tokens_input, tokens_output, tokens_total,
+                      tokens_total, tokens_input, tokens_output, tokens_total))
         
         conn.commit()
         conn.close()
     
     def get_api_key_stats(self):
-        """Get API key usage statistics"""
+        """Get detailed API key usage statistics with token tracking"""
+        from datetime import datetime, timedelta
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT key_index, usage_count, last_used, rate_limit_hits
+            SELECT key_index, usage_count, last_used, rate_limit_hits,
+                   tokens_used_today, tokens_input_today, tokens_output_today,
+                   daily_reset_time, total_tokens_lifetime
             FROM api_key_stats
             ORDER BY key_index
         ''')
         results = cursor.fetchall()
         conn.close()
         
-        return results
+        # Free tier limits (assuming GPT-4o-mini complimentary program)
+        # Tier 1-2: 2.5M tokens/day for mini models
+        DAILY_TOKEN_LIMIT = 2500000  # 2.5 million tokens for GPT-4o-mini
+        
+        detailed_stats = []
+        for row in results:
+            (key_index, usage_count, last_used, rate_limit_hits,
+             tokens_used_today, tokens_input_today, tokens_output_today,
+             daily_reset_time, total_tokens_lifetime) = row
+            
+            # Calculate tokens left
+            tokens_left = max(0, DAILY_TOKEN_LIMIT - (tokens_used_today or 0))
+            
+            # Calculate reset time
+            reset_time = None
+            hours_until_reset = None
+            if daily_reset_time:
+                try:
+                    reset_dt = datetime.fromisoformat(daily_reset_time)
+                    next_reset = reset_dt + timedelta(hours=24)
+                    hours_until_reset = (next_reset - datetime.now()).total_seconds() / 3600
+                    if hours_until_reset < 0:
+                        hours_until_reset = 0
+                    reset_time = next_reset.strftime("%Y-%m-%d %H:%M:%S")
+                except:
+                    pass
+            
+            detailed_stats.append({
+                'key_index': key_index,
+                'usage_count': usage_count or 0,
+                'last_used': last_used,
+                'rate_limit_hits': rate_limit_hits or 0,
+                'tokens_used_today': tokens_used_today or 0,
+                'tokens_input_today': tokens_input_today or 0,
+                'tokens_output_today': tokens_output_today or 0,
+                'tokens_left': tokens_left,
+                'daily_limit': DAILY_TOKEN_LIMIT,
+                'reset_time': reset_time,
+                'hours_until_reset': hours_until_reset,
+                'total_tokens_lifetime': total_tokens_lifetime or 0
+            })
+        
+        return detailed_stats
     
     def get_admin_keyboard(self):
         keyboard = [
@@ -968,20 +1105,60 @@ class TelegramChatBot:
         
         elif data == "admin_api_stats":
             stats = self.get_api_key_stats()
-            stats_text = "🔑 *API Key Statistics*\n\n"
+            stats_text = "🔑 *API Key & Token Statistics*\n\n"
             stats_text += f"📊 Total API Keys: {len(self.api_keys)}\n"
-            stats_text += f"🔄 Currently Using: Key #{self.current_key_index + 1}\n\n"
+            stats_text += f"🔄 Currently Using: Key #{self.current_key_index + 1}\n"
+            stats_text += f"💎 Daily Limit Per Key: 2.5M tokens (GPT-4o-mini)\n\n"
             
             if stats:
-                stats_text += "*Usage Details:*\n"
-                for key_idx, usage, last_used, rate_hits in stats:
-                    stats_text += f"\n*Key #{key_idx + 1}:*\n"
-                    stats_text += f"  ✅ Successful calls: {usage}\n"
-                    stats_text += f"  ⚠️ Rate limit hits: {rate_hits}\n"
-                    if last_used:
-                        stats_text += f"  🕒 Last used: {last_used}\n"
+                # Calculate overall stats
+                total_tokens_today = sum(s['tokens_used_today'] for s in stats)
+                total_tokens_left = sum(s['tokens_left'] for s in stats)
+                total_lifetime = sum(s['total_tokens_lifetime'] for s in stats)
+                
+                stats_text += "*📈 Overall Today:*\n"
+                stats_text += f"🔥 Total Used: {total_tokens_today:,} tokens\n"
+                stats_text += f"✅ Total Left: {total_tokens_left:,} tokens\n"
+                stats_text += f"🌟 Lifetime Total: {total_lifetime:,} tokens\n\n"
+                stats_text += "━━━━━━━━━━━━━━━━━\n\n"
+                
+                # Individual key stats (top 5 or all if less than 6)
+                display_stats = stats[:5] if len(stats) > 5 else stats
+                stats_text += "*🔑 Individual Keys:*\n"
+                for s in display_stats:
+                    key_num = s['key_index'] + 1
+                    tokens_used = s['tokens_used_today']
+                    tokens_left = s['tokens_left']
+                    hours_left = s['hours_until_reset']
+                    
+                    # Status indicator
+                    if tokens_left == 0:
+                        status = "🔴 EXHAUSTED"
+                    elif tokens_used == 0:
+                        status = "🟢 FRESH"
+                    elif tokens_left < 500000:
+                        status = "🟡 LOW"
+                    else:
+                        status = "🟢 ACTIVE"
+                    
+                    stats_text += f"\n*Key #{key_num}* {status}\n"
+                    stats_text += f"  📊 Used: {tokens_used:,} / {s['daily_limit']:,}\n"
+                    stats_text += f"  💚 Left: {tokens_left:,} tokens\n"
+                    stats_text += f"  📞 API Calls: {s['usage_count']}\n"
+                    
+                    if s['rate_limit_hits'] > 0:
+                        stats_text += f"  ⚠️ Rate Hits: {s['rate_limit_hits']}\n"
+                    
+                    if hours_left is not None:
+                        hours = int(hours_left)
+                        mins = int((hours_left - hours) * 60)
+                        stats_text += f"  ⏰ Resets in: {hours}h {mins}m\n"
+                
+                if len(stats) > 5:
+                    remaining = len(stats) - 5
+                    stats_text += f"\n_...and {remaining} more keys_\n"
             else:
-                stats_text += "No usage data yet."
+                stats_text += "No usage data yet. Start using the bot!"
             
             await query.edit_message_text(
                 stats_text,
@@ -1506,7 +1683,13 @@ class TelegramChatBot:
                         temperature=0.7
                     )
                     ai_response = response.choices[0].message.content
-                    self.track_api_key_usage(self.current_key_index, is_rate_limit=False)
+                    
+                    # Track API usage with token counts
+                    tokens_input = response.usage.prompt_tokens if response.usage else 0
+                    tokens_output = response.usage.completion_tokens if response.usage else 0
+                    self.track_api_key_usage(self.current_key_index, is_rate_limit=False, 
+                                            tokens_input=tokens_input, tokens_output=tokens_output)
+                    logger.info(f"✅ API call successful. Tokens: {tokens_input} in + {tokens_output} out = {tokens_input + tokens_output} total")
                     break  # Success! Exit loop
                     
                 except Exception as api_error:

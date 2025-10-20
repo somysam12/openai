@@ -10,6 +10,64 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## October 20, 2025 - Live Token Tracking System with Admin Dashboard
+
+**Major Feature**: Complete token usage tracking system with live dashboard, auto-reset, and smart status indicators.
+
+**Implementation**:
+- **Live Token Stats**: Real-time tracking of tokens used, tokens left, and reset times
+- **Per-Key Tracking**: Individual statistics for each of 17-18 API keys
+- **Daily Auto-Reset**: Automatic 24-hour reset with countdown timer
+- **Smart Status Indicators**: 🟢 FRESH / ACTIVE, 🟡 LOW, 🔴 EXHAUSTED
+- **Combined Dashboard**: Main + Pyrogram bot stats unified in admin panel
+- **Token Limits**: 2.5M tokens/day per key (GPT-4o-mini free tier)
+
+**Database Schema**:
+- Added `tokens_used_today`, `tokens_input_today`, `tokens_output_today`
+- Added `daily_reset_time` for tracking 24-hour cycles
+- Added `total_tokens_lifetime` for historical tracking
+- Auto-migration for existing databases
+
+**Admin Panel Features**:
+- Overall stats: Total used/left/lifetime across all keys
+- Individual key stats with detailed breakdowns
+- Reset countdown: Shows hours & minutes until next reset
+- Status visualization: Color-coded health indicators
+- Top 5 keys display (with "...and X more" for larger pools)
+
+**Technical Details**:
+- Extracts token counts from OpenAI API response.usage
+- Tracks prompt_tokens (input) and completion_tokens (output) separately
+- Automatic daily reset when 24 hours elapsed since last reset_time
+- Both bots write to shared `api_key_stats` table
+- Logs token usage on every successful API call
+
+**Status**: ✅ Production ready - Full token tracking active on both bots
+
+## October 20, 2025 - Pyrogram Bot: Full API Key Rotation & Database Tracking
+
+**Major Fix**: Pyrogram bot now uses ALL API keys with smart rotation, just like main bot.
+
+**Problem Solved**: 
+- Pyrogram was only using first API key (causing 401 account_deactivated errors)
+- No automatic rotation when keys failed
+- No database tracking of key usage
+
+**Implementation**:
+- **Smart Error Detection**: Automatically rotates on 401, 403, 429, invalid_api_key errors
+- **Database Tracking**: Shares `api_key_stats` table with main bot for unified monitoring
+- **Rotation Reasons**: Logs why each rotation happened (rate_limit, account_deactivated, etc.)
+- **Full Key Pool**: Uses all 17-18 API keys with automatic failover
+- **Admin Visibility**: API key stats visible in main bot admin panel
+
+**Technical Details**:
+- Added `track_api_key_usage()` function with database persistence
+- Enhanced `rotate_api_key()` with reason tracking
+- Improved error handling with comprehensive error type detection
+- Successful API calls now tracked in database
+
+**Status**: ✅ Production ready - Full API key rotation active
+
 ## October 19, 2025 - Pyrogram Bot Threading Fix & Deployment Ready
 
 **Fix**: Fixed threading issue in Pyrogram personal account bot for Render deployment.

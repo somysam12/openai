@@ -78,16 +78,113 @@ class PersonalAccountBot:
         logger.info(f"  - Knowledge Base: {'✅' if self.use_knowledge_base else '❌'}")
         logger.info(f"  - Cooldown: {self.reply_cooldown_hours} hours (0 = disabled)")
     
-    def rotate_api_key(self):
-        """Rotate to the next available API key"""
+    def rotate_api_key(self, reason="manual"):
+        """Rotate to the next available API key and track in database"""
         if not self.openai_client or len(self.api_keys) <= 1:
             return 0
+        
+        # Track rate limit hit in database if applicable
+        if reason == "rate_limit":
+            self.track_api_key_usage(rate_limit_hit=True)
         
         self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
         new_key = self.api_keys[self.current_key_index]
         self.openai_client = OpenAI(api_key=new_key, max_retries=0)
-        logger.warning(f"🔄 Rotated to API key #{self.current_key_index + 1}")
+        logger.warning(f"🔄 Rotated to API key #{self.current_key_index + 1} (Reason: {reason})")
         return self.current_key_index + 1
+    
+    def track_api_key_usage(self, rate_limit_hit=False, tokens_input=0, tokens_output=0):
+        """Track API key usage with token counting in database (same as main bot)"""
+        from datetime import datetime, timedelta
+        try:
+            conn = sqlite3.connect(self.main_db_path)
+            cursor = conn.cursor()
+            
+            # Get current stats for this key
+            cursor.execute('SELECT daily_reset_time FROM api_key_stats WHERE key_index = ?', (self.current_key_index,))
+            result = cursor.fetchone()
+            
+            # Check if daily reset is needed
+            should_reset = False
+            if result and result[0]:
+                last_reset = datetime.fromisoformat(result[0])
+                if datetime.now() - last_reset >= timedelta(hours=24):
+                    should_reset = True
+            else:
+                should_reset = True
+            
+            tokens_total = tokens_input + tokens_output
+            
+            if should_reset:
+                # Reset daily counters
+                if rate_limit_hit:
+                    cursor.execute('''
+                        INSERT INTO api_key_stats (key_index, usage_count, last_used, rate_limit_hits,
+                                                   tokens_used_today, tokens_input_today, tokens_output_today,
+                                                   daily_reset_time, total_tokens_lifetime)
+                        VALUES (?, 0, ?, 1, 0, 0, 0, ?, ?)
+                        ON CONFLICT(key_index) DO UPDATE SET
+                            rate_limit_hits = rate_limit_hits + 1,
+                            last_used = ?,
+                            tokens_used_today = 0,
+                            tokens_input_today = 0,
+                            tokens_output_today = 0,
+                            daily_reset_time = ?,
+                            total_tokens_lifetime = total_tokens_lifetime + ?
+                    ''', (self.current_key_index, datetime.now().isoformat(), datetime.now().isoformat(), tokens_total,
+                          datetime.now().isoformat(), datetime.now().isoformat(), tokens_total))
+                else:
+                    cursor.execute('''
+                        INSERT INTO api_key_stats (key_index, usage_count, last_used, rate_limit_hits,
+                                                   tokens_used_today, tokens_input_today, tokens_output_today,
+                                                   daily_reset_time, total_tokens_lifetime)
+                        VALUES (?, 1, ?, 0, ?, ?, ?, ?, ?)
+                        ON CONFLICT(key_index) DO UPDATE SET
+                            usage_count = usage_count + 1,
+                            last_used = ?,
+                            tokens_used_today = ?,
+                            tokens_input_today = ?,
+                            tokens_output_today = ?,
+                            daily_reset_time = ?,
+                            total_tokens_lifetime = total_tokens_lifetime + ?
+                    ''', (self.current_key_index, datetime.now().isoformat(), tokens_total, tokens_input, tokens_output,
+                          datetime.now().isoformat(), tokens_total, datetime.now().isoformat(), tokens_total, 
+                          tokens_input, tokens_output, datetime.now().isoformat(), tokens_total))
+            else:
+                # Increment daily counters
+                if rate_limit_hit:
+                    cursor.execute('''
+                        INSERT INTO api_key_stats (key_index, usage_count, last_used, rate_limit_hits,
+                                                   tokens_used_today, tokens_input_today, tokens_output_today,
+                                                   daily_reset_time, total_tokens_lifetime)
+                        VALUES (?, 0, ?, 1, 0, 0, 0, ?, ?)
+                        ON CONFLICT(key_index) DO UPDATE SET
+                            rate_limit_hits = rate_limit_hits + 1,
+                            last_used = ?,
+                            total_tokens_lifetime = total_tokens_lifetime + ?
+                    ''', (self.current_key_index, datetime.now().isoformat(), datetime.now().isoformat(), tokens_total,
+                          datetime.now().isoformat(), tokens_total))
+                else:
+                    cursor.execute('''
+                        INSERT INTO api_key_stats (key_index, usage_count, last_used, rate_limit_hits,
+                                                   tokens_used_today, tokens_input_today, tokens_output_today,
+                                                   daily_reset_time, total_tokens_lifetime)
+                        VALUES (?, 1, ?, 0, ?, ?, ?, ?, ?)
+                        ON CONFLICT(key_index) DO UPDATE SET
+                            usage_count = usage_count + 1,
+                            last_used = ?,
+                            tokens_used_today = tokens_used_today + ?,
+                            tokens_input_today = tokens_input_today + ?,
+                            tokens_output_today = tokens_output_today + ?,
+                            total_tokens_lifetime = total_tokens_lifetime + ?
+                    ''', (self.current_key_index, datetime.now().isoformat(), tokens_total, tokens_input, tokens_output,
+                          datetime.now().isoformat(), tokens_total, datetime.now().isoformat(), tokens_total,
+                          tokens_input, tokens_output, tokens_total))
+            
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Failed to track API key usage: {e}")
     
     def init_database(self):
         """Initialize database to track auto-replies"""
@@ -314,21 +411,52 @@ class PersonalAccountBot:
                             temperature=0.7
                         )
                         ai_response = response.choices[0].message.content
-                        break
-                    except Exception as api_error:
-                        error_str = str(api_error)
                         
-                        if "429" in error_str or "rate limit" in error_str.lower():
+                        # Track successful API usage with token counts
+                        tokens_input = response.usage.prompt_tokens if response.usage else 0
+                        tokens_output = response.usage.completion_tokens if response.usage else 0
+                        self.track_api_key_usage(rate_limit_hit=False, tokens_input=tokens_input, tokens_output=tokens_output)
+                        logger.info(f"✅ Personal bot API call. Tokens: {tokens_input} in + {tokens_output} out = {tokens_input + tokens_output} total")
+                        break
+                        
+                    except Exception as api_error:
+                        error_str = str(api_error).lower()
+                        
+                        # Check for errors that need key rotation
+                        should_rotate = False
+                        rotation_reason = "error"
+                        
+                        if "429" in error_str or "rate limit" in error_str:
+                            should_rotate = True
+                            rotation_reason = "rate_limit"
                             logger.warning(f"⚠️ Rate limit hit on API key #{self.current_key_index + 1}")
-                            
+                        
+                        elif "401" in error_str or "unauthorized" in error_str or "account_deactivated" in error_str:
+                            should_rotate = True
+                            rotation_reason = "account_deactivated"
+                            logger.warning(f"⚠️ API key #{self.current_key_index + 1} is deactivated/invalid")
+                        
+                        elif "403" in error_str or "forbidden" in error_str:
+                            should_rotate = True
+                            rotation_reason = "forbidden"
+                            logger.warning(f"⚠️ API key #{self.current_key_index + 1} access forbidden")
+                        
+                        elif "invalid_api_key" in error_str or "incorrect api key" in error_str:
+                            should_rotate = True
+                            rotation_reason = "invalid_key"
+                            logger.warning(f"⚠️ API key #{self.current_key_index + 1} is invalid")
+                        
+                        if should_rotate:
                             if attempt < max_attempts - 1:
-                                self.rotate_api_key()
-                                logger.info(f"🔄 Retrying with next API key...")
+                                self.rotate_api_key(reason=rotation_reason)
+                                logger.info(f"🔄 Retrying with next API key (Attempt {attempt + 2}/{max_attempts})...")
                                 continue
                             else:
                                 logger.error("❌ All API keys exhausted!")
-                                raise Exception("All API keys exhausted")
+                                raise Exception(f"All {max_attempts} API keys failed")
                         else:
+                            # Unknown error - don't rotate, just fail
+                            logger.error(f"❌ Unexpected API error: {api_error}")
                             raise api_error
                 
                 if ai_response:
