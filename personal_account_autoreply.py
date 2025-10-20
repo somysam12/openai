@@ -515,6 +515,10 @@ class PersonalAccountBot:
         except KeyboardInterrupt:
             logger.info("Stopping personal account bot...")
             loop.run_until_complete(self.app.stop())
+        except EOFError as e:
+            logger.warning("⚠️  Session file needs re-authentication (EOF error)")
+            logger.warning("Personal bot will be skipped - session needs to be regenerated")
+            logger.warning("Run 'python quick_auth.py' locally to create new session")
         except Exception as e:
             logger.error(f"Error in personal bot: {e}")
             try:

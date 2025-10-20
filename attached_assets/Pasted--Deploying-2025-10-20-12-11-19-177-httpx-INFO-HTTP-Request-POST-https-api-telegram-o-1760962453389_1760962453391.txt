@@ -1,0 +1,123 @@
+==> Deploying...
+2025-10-20 12:11:19,177 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-20 12:11:29,364 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-20 12:11:39,554 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-20 12:11:49,745 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+==> Running 'python start_both_bots.py'
+2025-10-20 12:11:55,884 - __main__ - INFO - 🚀 COMBINED BOT RUNNER STARTING...
+2025-10-20 12:11:55,884 - __main__ - INFO - This will run both bots simultaneously
+2025-10-20 12:11:55,884 - __main__ - INFO - 
+2025-10-20 12:11:55,885 - __main__ - INFO - ============================================================
+2025-10-20 12:11:55,885 - __main__ - INFO - 👤 STARTING PERSONAL ACCOUNT BOT (Pyrogram)
+2025-10-20 12:11:55,885 - __main__ - INFO - ============================================================
+2025-10-20 12:11:57,885 - __main__ - INFO - ============================================================
+2025-10-20 12:11:57,885 - __main__ - INFO - 🤖 STARTING MAIN TELEGRAM BOT (Bot API)
+2025-10-20 12:11:57,885 - __main__ - INFO - ============================================================
+2025-10-20 12:11:59,936 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-20 12:12:10,124 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+     ==> Your service is live 🎉
+     ==> 
+     ==> ///////////////////////////////////////////////////////////
+     ==> 
+2025-10-20 12:12:14,665 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-20 12:12:14,666 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:14,666 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+     ==> Available at your primary URL https://telegram-ai-bot-chatbot.onrender.com
+     ==> 
+     ==> ///////////////////////////////////////////////////////////
+2025-10-20 12:12:09,978 - __main__ - INFO - ✅ Flask health check server started on port 10000
+2025-10-20 12:12:09,978 - main - INFO - ✅ Loaded 17 API keys for rotation
+ * Serving Flask app 'main'
+ * Debug mode: off
+2025-10-20 12:12:11,675 - main - INFO - Database initialized successfully
+2025-10-20 12:12:11,675 - __main__ - INFO - ✅ Main bot initialized successfully
+2025-10-20 12:12:11,675 - main - INFO - Starting Telegram bot...
+2025-10-20 12:12:12,578 - main - INFO - Bot is ready and polling for messages...
+2025-10-20 12:12:12,578 - main - INFO - 🔑 Using API key rotation system with 17 keys
+2025-10-20 12:12:13,775 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getMe "HTTP/1.1 200 OK"
+2025-10-20 12:12:14,080 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/deleteWebhook "HTTP/1.1 200 OK"
+2025-10-20 12:12:14,081 - telegram.ext.Application - INFO - Application started
+2025-10-20 12:12:16,189 - pyrogram.crypto.aes - INFO - Using TgCrypto
+2025-10-20 12:12:17,078 - personal_account_autoreply - INFO - ✅ Loaded 17 API keys for rotation
+2025-10-20 12:12:17,085 - personal_account_autoreply - INFO - Database initialized for personal account bot
+2025-10-20 12:12:17,085 - personal_account_autoreply - INFO - Personal Account Bot initialized:
+2025-10-20 12:12:17,085 - personal_account_autoreply - INFO -   - AI Responses: ✅
+2025-10-20 12:12:17,085 - personal_account_autoreply - INFO -   - Keywords: ✅
+2025-10-20 12:12:17,085 - personal_account_autoreply - INFO -   - Knowledge Base: ✅
+2025-10-20 12:12:17,085 - personal_account_autoreply - INFO -   - Cooldown: 0 hours (0 = disabled)
+2025-10-20 12:12:17,085 - __main__ - INFO - ✅ Personal bot initialized successfully
+2025-10-20 12:12:17,085 - personal_account_autoreply - INFO - Starting Personal Account Auto-Reply Bot...
+2025-10-20 12:12:17,086 - personal_account_autoreply - INFO - Bot is running and monitoring your personal DMs...
+2025-10-20 12:12:17,086 - personal_account_autoreply - INFO - Auto-reply message: Namaste! Main abhi busy hoon. Aap ka message dekha hai, jald hi reply karunga. 🙏...
+2025-10-20 12:12:17,086 - personal_account_autoreply - INFO - Cooldown period: 0 hours per user
+2025-10-20 12:12:18,859 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-20 12:12:18,859 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:18,860 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:19,286 - pyrogram.session.auth - INFO - Start creating a new auth key on DC2
+2025-10-20 12:12:19,287 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-20 12:12:19,488 - pyrogram.connection.connection - INFO - Connected! Production DC2 - IPv4
+2025-10-20 12:12:20,049 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-20 12:12:20,050 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:20,050 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:21,774 - pyrogram.session.auth - INFO - Done auth key exchange: DhGenOk
+2025-10-20 12:12:21,775 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-20 12:12:21,782 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-20 12:12:21,978 - pyrogram.connection.connection - INFO - Connected! Production DC2 - IPv4
+2025-10-20 12:12:21,978 - pyrogram.session.session - INFO - NetworkTask started
+2025-10-20 12:12:22,906 - pyrogram.session.session - INFO - Session initialized: Layer 158
+2025-10-20 12:12:22,906 - pyrogram.session.session - INFO - Device: CPython 3.13.4 - Pyrogram 2.0.106
+2025-10-20 12:12:22,906 - pyrogram.session.session - INFO - System: Linux 6.8.0-1035-aws (en)
+2025-10-20 12:12:22,906 - pyrogram.session.session - INFO - Session started
+2025-10-20 12:12:22,907 - pyrogram.session.session - INFO - PingTask started
+Welcome to Pyrogram (version 2.0.106)
+Pyrogram is free software and comes with ABSOLUTELY NO WARRANTY. Licensed
+under the terms of the GNU Lesser General Public License v3.0 (LGPL-3.0).
+2025-10-20 12:12:22,908 - pyrogram.session.session - INFO - PingTask stopped
+2025-10-20 12:12:22,908 - pyrogram.session.session - INFO - NetworkTask stopped
+2025-10-20 12:12:22,908 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-20 12:12:22,908 - pyrogram.session.session - INFO - Session stopped
+2025-10-20 12:12:22,908 - personal_account_autoreply - ERROR - Error in personal bot: EOF when reading a line
+2025-10-20 12:12:24,741 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-20 12:12:24,742 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:24,742 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:26,435 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-20 12:12:26,436 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:26,436 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:31,880 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-20 12:12:31,881 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:31,881 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:34,320 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-20 12:12:34,321 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:34,321 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:37,887 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-20 12:12:37,888 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:37,888 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:41,456 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-20 12:12:41,456 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:41,456 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:47,094 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-20 12:12:47,094 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:47,094 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:52,806 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-20 12:12:52,806 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:12:52,806 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:13:01,246 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-20 12:13:01,247 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:13:01,247 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:13:09,530 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-20 12:13:09,530 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:13:09,531 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-20 12:13:21,495 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-20 12:13:21,496 - telegram.ext.Application - INFO - Application is stopping. This might take a moment.
+2025-10-20 12:13:21,496 - telegram.ext.Application - INFO - Application.stop() complete
+2025-10-20 12:13:19,426 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-20 12:13:29,622 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-20 12:13:39,839 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-20 12:13:50,085 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-20 12:13:50,702 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-20 12:13:50,707 - main - INFO - Received message from 5952524867 (Tgshaitaan): Hey
+2025-10-20 12:13:51,639 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendChatAction "HTTP/1.1 200 OK"
+2025-10-20 12:13:51,949 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-10-20 12:13:51,950 - main - ERROR - Error processing message: Error code: 401 - {'error': {'message': 'The OpenAI account associated with this API key has been deactivated. If you are the developer for this OpenAI app, please check your email for more information. If you are seeing this error while using another app or site, please reach out to them for more help.', 'type': 'invalid_request_error', 'param': None, 'code': 'account_deactivated'}}
+2025-10-20 12:13:52,529 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-20 12:14:00,924 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"

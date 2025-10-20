@@ -48,14 +48,18 @@ def run_personal_bot():
     """Run personal account bot (Pyrogram user bot)"""
     try:
         # Check if session file exists
-        if not os.path.exists('my_personal_account.session'):
+        session_file_exists = os.path.exists('my_personal_account.session')
+        
+        if not session_file_exists:
             logger.warning("=" * 60)
             logger.warning("⚠️  SESSION FILE NOT FOUND")
             logger.warning("Personal Account Bot will NOT start")
             logger.warning("To enable it:")
-            logger.warning("1. Run 'python quick_auth.py' locally")
-            logger.warning("2. Upload session file to deployment")
+            logger.warning("1. Run 'python quick_auth.py' locally on your computer")
+            logger.warning("2. Upload 'my_personal_account.session' file to git")
+            logger.warning("3. Redeploy on Render")
             logger.warning("=" * 60)
+            logger.info("✅ Continuing with MAIN BOT only...")
             return
         
         # Check if API credentials are set

@@ -48,16 +48,15 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Server"
+args = "Local Test (DO NOT RUN if Render is active!)"
 
 [[workflows.workflow]]
-name = "Server"
+name = "Local Test (DO NOT RUN if Render is active!)"
 author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "yes | npm run dev"
-waitForPort = 5000
+args = "echo \"⚠️ WARNING: Do NOT run this while bot is deployed on Render!\" && echo \"This is for LOCAL TESTING ONLY\" && echo \"If Render is active, it will cause 'Conflict' error\" && echo \"\" && echo \"To test locally:\" && echo \"1. Stop Render deployment first\" && echo \"2. Then run: python start_both_bots.py\" && sleep infinity"
+
+[workflows.workflow.metadata]
+outputType = "console"
