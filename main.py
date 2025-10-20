@@ -176,6 +176,21 @@ class TelegramChatBot:
             )
         ''')
         
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS pyrogram_accounts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                phone_number TEXT UNIQUE NOT NULL,
+                account_name TEXT,
+                session_string TEXT,
+                is_active INTEGER DEFAULT 0,
+                is_authenticated INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_active DATETIME,
+                reply_count INTEGER DEFAULT 0,
+                error_message TEXT
+            )
+        ''')
+        
         try:
             cursor.execute('ALTER TABLE chat_history ADD COLUMN message_role TEXT DEFAULT "user"')
         except sqlite3.OperationalError:
@@ -559,6 +574,75 @@ class TelegramChatBot:
         conn.commit()
         conn.close()
     
+    async def show_super_knowledge_manage(self, query_or_message, user_id: int, knowledge_id: int, context=None):
+        """Show super knowledge management interface"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, title, knowledge_text, target_scope, status, updated_at
+            FROM bot_knowledge
+            WHERE id = ? AND priority = 'super'
+        ''', (knowledge_id,))
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            error_msg = f"❌ Super Knowledge #{knowledge_id} not found!"
+            if hasattr(query_or_message, 'edit_message_text'):
+                await query_or_message.edit_message_text(
+                    error_msg,
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("« Back", callback_data="admin_list_super_knowledge")
+                    ]])
+                )
+            else:
+                await query_or_message.reply_text(
+                    error_msg,
+                    reply_markup=self.get_admin_keyboard()
+                )
+            return
+        
+        kid, title, text, scope, status, updated_at = result
+        
+        scope_map = {
+            'main_only': '🤖 Main Bot Only',
+            'dm_only': '💬 DM Bot Only',
+            'both': '🤝 Both Bots'
+        }
+        scope_text = scope_map.get(scope, scope)
+        status_icon = "✅ Active" if status == 'active' else "❌ Inactive"
+        
+        message_text = f"🧠 *SUPER KNOWLEDGE #{kid}*\n\n"
+        message_text += f"*Title:* {title}\n"
+        message_text += f"*Scope:* {scope_text}\n"
+        message_text += f"*Status:* {status_icon}\n"
+        message_text += f"*Updated:* {updated_at}\n\n"
+        message_text += f"*Content:*\n{text}\n\n"
+        message_text += "Manage this knowledge:"
+        
+        keyboard = [
+            [InlineKeyboardButton(
+                "✅ Activate" if status != 'active' else "❌ Deactivate",
+                callback_data=f"sk_toggle_{kid}"
+            )],
+            [InlineKeyboardButton("🗑️ Delete", callback_data=f"sk_delete_{kid}")],
+            [InlineKeyboardButton("« Back to List", callback_data="admin_list_super_knowledge")]
+        ]
+        
+        if hasattr(query_or_message, 'edit_message_text'):
+            await query_or_message.edit_message_text(
+                message_text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        else:
+            await query_or_message.reply_text(
+                message_text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+    
     def get_deactivated_keys(self):
         """Get list of deactivated API keys"""
         conn = sqlite3.connect(self.db_path)
@@ -612,8 +696,11 @@ class TelegramChatBot:
                 InlineKeyboardButton("🏘️ Group Sessions", callback_data="admin_group_sessions")
             ],
             [
-                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session"),
+                InlineKeyboardButton("📱 Multi-Account DM Bot", callback_data="admin_pyrogram_manager"),
                 InlineKeyboardButton("🔄 Refresh Panel", callback_data="admin_refresh")
+            ],
+            [
+                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session")
             ]
         ]
         return InlineKeyboardMarkup(keyboard)
@@ -1633,6 +1720,158 @@ class TelegramChatBot:
                 parse_mode='Markdown'
             )
         
+        elif data.startswith("sk_scope_"):
+            # Handle super knowledge scope selection
+            scope = data.replace("sk_scope_", "")
+            
+            if user_id not in self.admin_state or not self.admin_state[user_id].startswith("waiting_super_knowledge_scope:"):
+                await query.answer("❌ Session expired! Please start again.")
+                await query.edit_message_text(
+                    "❌ Session expired. Please add super knowledge again.",
+                    reply_markup=self.get_admin_keyboard()
+                )
+                return
+            
+            # Extract title and knowledge text
+            state_data = self.admin_state[user_id].replace("waiting_super_knowledge_scope:", "")
+            parts = state_data.split("|||")
+            if len(parts) != 2:
+                await query.answer("❌ Error! Please start again.")
+                return
+            
+            title, knowledge_text = parts
+            
+            # Add super knowledge to database
+            knowledge_id = self.add_super_knowledge(title, knowledge_text, scope)
+            
+            del self.admin_state[user_id]
+            await query.answer("✅ Super Knowledge Added!")
+            
+            scope_map = {
+                'main_only': '🤖 Main Bot Only',
+                'dm_only': '💬 DM Bot Only',
+                'both': '🤝 Both Bots'
+            }
+            scope_text = scope_map.get(scope, scope)
+            
+            await query.edit_message_text(
+                f"✅ *SUPER KNOWLEDGE ADDED!*\n\n"
+                f"*ID:* #{knowledge_id}\n"
+                f"*Title:* {title}\n"
+                f"*Scope:* {scope_text}\n\n"
+                f"*Content Preview:*\n{knowledge_text[:200]}{'...' if len(knowledge_text) > 200 else ''}\n\n"
+                f"✅ This MANDATORY knowledge is now ACTIVE and will be applied to bot responses!",
+                reply_markup=self.get_admin_keyboard(),
+                parse_mode='Markdown'
+            )
+            logger.info(f"Admin {user_id} added super knowledge #{knowledge_id}: {title} (scope: {scope})")
+        
+        elif data == "admin_pyrogram_manager":
+            # Get all Pyrogram accounts
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT id, phone_number, account_name, is_active, is_authenticated, reply_count FROM pyrogram_accounts ORDER BY created_at DESC')
+            accounts = cursor.fetchall()
+            conn.close()
+            
+            if not accounts:
+                text = "📱 *MULTI-ACCOUNT DM BOT MANAGER*\n\n"
+                text += "No accounts added yet!\n\n"
+                text += "Add Pyrogram accounts to enable automated replies on multiple phone numbers.\n\n"
+                text += "⚠️ *Requirements:*\n"
+                text += "• Valid phone numbers with Telegram accounts\n"
+                text += "• Telegram API ID & API Hash from my.telegram.org\n"
+                text += "• Access to OTP for authentication\n\n"
+                text += "Add your first account to get started!"
+                
+                keyboard = [
+                    [InlineKeyboardButton("➕ Add Account", callback_data="pyrogram_add_account")],
+                    [InlineKeyboardButton("« Back", callback_data="admin_refresh")]
+                ]
+            else:
+                text = f"📱 *MULTI-ACCOUNT DM BOT MANAGER*\n\n"
+                text += f"Total Accounts: {len(accounts)}\n\n"
+                
+                for acc_id, phone, name, is_active, is_auth, replies in accounts[:5]:
+                    status = "🟢 Active" if is_active else "🔴 Inactive"
+                    auth = "✅ Auth" if is_auth else "⚠️ Not Auth"
+                    text += f"*{name}*\n"
+                    text += f"  Phone: +{phone}\n"
+                    text += f"  Status: {status} | {auth}\n"
+                    text += f"  Replies: {replies}\n\n"
+                
+                keyboard = [
+                    [InlineKeyboardButton("➕ Add Account", callback_data="pyrogram_add_account")],
+                    [InlineKeyboardButton("📋 View All", callback_data="pyrogram_list_accounts")],
+                    [InlineKeyboardButton("▶️ Start All", callback_data="pyrogram_start_all")],
+                    [InlineKeyboardButton("⏹️ Stop All", callback_data="pyrogram_stop_all")],
+                    [InlineKeyboardButton("« Back", callback_data="admin_refresh")]
+                ]
+            
+            await query.edit_message_text(
+                text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        
+        elif data == "pyrogram_add_account":
+            self.admin_state[user_id] = "waiting_pyrogram_phone"
+            await query.edit_message_text(
+                "📱 *ADD PYROGRAM ACCOUNT*\n\n"
+                "Step 1/2: Send the phone number\n\n"
+                "*Format:* Country code + number (without + or spaces)\n"
+                "*Example:* 919876543210\n\n"
+                "⚠️ Make sure you have:\n"
+                "• Access to this phone number\n"
+                "• Can receive OTP on this number\n"
+                "• Telegram account on this number\n\n"
+                "Send /cancel to cancel.",
+                parse_mode='Markdown'
+            )
+        
+        elif data == "pyrogram_list_accounts":
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT id, phone_number, account_name, is_active, is_authenticated, reply_count, last_active FROM pyrogram_accounts ORDER BY created_at DESC')
+            accounts = cursor.fetchall()
+            conn.close()
+            
+            if not accounts:
+                text = "No accounts found!"
+            else:
+                text = f"📱 *ALL PYROGRAM ACCOUNTS ({len(accounts)})*\n\n"
+                for acc_id, phone, name, is_active, is_auth, replies, last_active in accounts:
+                    status = "🟢" if is_active else "🔴"
+                    auth = "✅" if is_auth else "⚠️"
+                    text += f"{status}{auth} *{name}* (ID: {acc_id})\n"
+                    text += f"    +{phone}\n"
+                    text += f"    Replies: {replies} | Last: {last_active or 'Never'}\n\n"
+            
+            keyboard = [
+                [InlineKeyboardButton("« Back", callback_data="admin_pyrogram_manager")]
+            ]
+            await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+        
+        elif data == "pyrogram_start_all":
+            await query.answer("⚠️ Feature coming soon! Use start_both_bots.py to start Pyrogram bots.")
+            await query.edit_message_text(
+                "⚠️ *MULTI-ACCOUNT AUTOMATION*\n\n"
+                "To use multiple Pyrogram accounts:\n\n"
+                "1. Set environment variables:\n"
+                "   • TELEGRAM_API_ID\n"
+                "   • TELEGRAM_API_HASH\n\n"
+                "2. Run: `python start_both_bots.py`\n\n"
+                "This will start all authenticated accounts.\n\n"
+                "📝 *Note:* Each account needs authentication first (OTP verification).",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("« Back", callback_data="admin_pyrogram_manager")
+                ]]),
+                parse_mode='Markdown'
+            )
+        
+        elif data == "pyrogram_stop_all":
+            await query.answer("ℹ️ Stop the process/deployment to stop all bots.")
+        
         elif data == "admin_refresh":
             await query.edit_message_text(
                 "🔐 *Admin Control Panel*\n\n"
@@ -1897,6 +2136,121 @@ class TelegramChatBot:
                     except Exception as e:
                         await update.message.reply_text(f"❌ Failed to send: {e}")
                         logger.error(f"Failed to send admin message to group: {e}")
+                return
+            
+            elif state == "waiting_super_knowledge_title":
+                title = user_message.strip()
+                if not title or len(title) < 3:
+                    await update.message.reply_text(
+                        "❌ Title too short! Please send a meaningful title (at least 3 characters).",
+                        parse_mode='Markdown'
+                    )
+                    return
+                
+                self.admin_state[user.id] = f"waiting_super_knowledge_text:{title}"
+                await update.message.reply_text(
+                    f"✅ *Title Set:* `{title}`\n\n"
+                    f"Step 2/3: Now send the SUPER KNOWLEDGE content\n\n"
+                    f"*This is MANDATORY knowledge that bots MUST follow*\n\n"
+                    f"*Example:*\n"
+                    f"\"When user asks about pricing, ALWAYS mention our premium package at ₹999/month with 24/7 support and unlimited features. This is the ONLY package we offer.\"\n\n"
+                    f"Send /cancel to cancel.",
+                    parse_mode='Markdown'
+                )
+                return
+            
+            elif state.startswith("waiting_super_knowledge_text:"):
+                title = state.split(":", 1)[1]
+                knowledge_text = user_message.strip()
+                
+                if not knowledge_text or len(knowledge_text) < 10:
+                    await update.message.reply_text(
+                        "❌ Knowledge text too short! Please send meaningful content (at least 10 characters).",
+                        parse_mode='Markdown'
+                    )
+                    return
+                
+                self.admin_state[user.id] = f"waiting_super_knowledge_scope:{title}|||{knowledge_text}"
+                
+                keyboard = [
+                    [InlineKeyboardButton("🤖 Main Bot Only", callback_data="sk_scope_main_only")],
+                    [InlineKeyboardButton("💬 DM Bot Only", callback_data="sk_scope_dm_only")],
+                    [InlineKeyboardButton("🤝 Both Bots", callback_data="sk_scope_both")],
+                    [InlineKeyboardButton("« Cancel", callback_data="admin_refresh")]
+                ]
+                
+                await update.message.reply_text(
+                    f"✅ *Knowledge Content Received!*\n\n"
+                    f"Step 3/3: Choose TARGET SCOPE\n\n"
+                    f"*Where should this knowledge be applied?*\n"
+                    f"• Main Bot Only - Only for main Telegram bot\n"
+                    f"• DM Bot Only - Only for Pyrogram DM bots\n"
+                    f"• Both Bots - Apply to all bots\n\n"
+                    f"Select an option below:",
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='Markdown'
+                )
+                return
+            
+            elif state == "waiting_super_knowledge_id":
+                try:
+                    knowledge_id = int(user_message.strip())
+                    await self.show_super_knowledge_manage(update.message, user.id, knowledge_id, context)
+                    del self.admin_state[user.id]
+                except ValueError:
+                    await update.message.reply_text(
+                        "❌ Please send a valid knowledge ID number!",
+                        parse_mode='Markdown'
+                    )
+                return
+            
+            elif state == "waiting_pyrogram_phone":
+                phone = user_message.strip().replace('+', '').replace(' ', '').replace('-', '')
+                if not phone.isdigit() or len(phone) < 10:
+                    await update.message.reply_text(
+                        "❌ Invalid phone number! Please send a valid phone number.\n\n"
+                        "*Example:* 919876543210 (without + or spaces)",
+                        parse_mode='Markdown'
+                    )
+                    return
+                
+                self.admin_state[user.id] = f"waiting_pyrogram_name:{phone}"
+                await update.message.reply_text(
+                    f"✅ *Phone:* `+{phone}`\n\n"
+                    f"Now send a NAME for this account\n\n"
+                    f"*Example:* `Personal Account 1` or `Business DM Bot`\n\n"
+                    f"Send /cancel to cancel.",
+                    parse_mode='Markdown'
+                )
+                return
+            
+            elif state.startswith("waiting_pyrogram_name:"):
+                phone = state.split(":", 1)[1]
+                account_name = user_message.strip()
+                
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO pyrogram_accounts (phone_number, account_name, is_active, is_authenticated)
+                    VALUES (?, ?, 0, 0)
+                ''', (phone, account_name))
+                conn.commit()
+                account_id = cursor.lastrowid
+                conn.close()
+                
+                del self.admin_state[user.id]
+                await update.message.reply_text(
+                    f"✅ *Pyrogram Account Added!*\n\n"
+                    f"*Account Name:* {account_name}\n"
+                    f"*Phone:* +{phone}\n\n"
+                    f"⚠️ *IMPORTANT:* To activate this account, you need to:\n"
+                    f"1. Set up Pyrogram credentials (API ID & Hash)\n"
+                    f"2. Authenticate with OTP\n\n"
+                    f"Check the Pyrogram manager to activate accounts.",
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='Markdown'
+                )
+                logger.info(f"Admin {user.id} added Pyrogram account: {account_name} ({phone})")
                 return
         
         if user.id in self.user_to_admin_chat:
