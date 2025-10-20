@@ -1695,20 +1695,41 @@ class TelegramChatBot:
                 except Exception as api_error:
                     error_str = str(api_error)
                     
-                    # Check if it's a rate limit error (429)
-                    if "429" in error_str or "rate limit" in error_str.lower():
-                        logger.warning(f"⚠️ Rate limit hit on API key #{self.current_key_index + 1}")
-                        self.track_api_key_usage(self.current_key_index, is_rate_limit=True)
+                    # Check if it's a retryable error (401, 403, 429, or deactivated account)
+                    should_rotate = (
+                        "401" in error_str or 
+                        "403" in error_str or 
+                        "429" in error_str or 
+                        "rate limit" in error_str.lower() or
+                        "deactivated" in error_str.lower() or
+                        "invalid_api_key" in error_str.lower()
+                    )
+                    
+                    if should_rotate:
+                        # Determine the error reason
+                        if "401" in error_str or "deactivated" in error_str.lower():
+                            reason = "account_deactivated"
+                            logger.warning(f"⚠️ API key #{self.current_key_index + 1} - Account deactivated (401)")
+                        elif "403" in error_str:
+                            reason = "forbidden"
+                            logger.warning(f"⚠️ API key #{self.current_key_index + 1} - Forbidden (403)")
+                        elif "invalid_api_key" in error_str.lower():
+                            reason = "invalid_key"
+                            logger.warning(f"⚠️ API key #{self.current_key_index + 1} - Invalid API key")
+                        else:
+                            reason = "rate_limit"
+                            logger.warning(f"⚠️ API key #{self.current_key_index + 1} - Rate limit (429)")
+                            self.track_api_key_usage(self.current_key_index, is_rate_limit=True)
                         
                         if attempt < max_attempts - 1:
                             # Rotate to next key and retry
                             key_num = self.rotate_api_key()
-                            logger.info(f"🔄 Retrying with API key #{key_num}...")
+                            logger.info(f"🔄 Rotating due to {reason}. Retrying with API key #{key_num}...")
                             continue
                         else:
                             # All keys exhausted
-                            logger.error("❌ All API keys have reached rate limit!")
-                            raise Exception("All API keys exhausted. Please wait for rate limits to reset.")
+                            logger.error(f"❌ All {len(self.api_keys)} API keys failed!")
+                            raise Exception(f"All API keys exhausted. Last error: {reason}")
                     else:
                         # Different error, don't rotate
                         raise api_error
