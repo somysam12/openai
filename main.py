@@ -248,6 +248,33 @@ class TelegramChatBot:
         except sqlite3.OperationalError:
             pass
         
+        # Add Super Knowledge columns to bot_knowledge table
+        try:
+            cursor.execute('ALTER TABLE bot_knowledge ADD COLUMN priority TEXT DEFAULT "regular"')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('ALTER TABLE bot_knowledge ADD COLUMN target_scope TEXT DEFAULT "both"')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('ALTER TABLE bot_knowledge ADD COLUMN title TEXT')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('ALTER TABLE bot_knowledge ADD COLUMN status TEXT DEFAULT "active"')
+        except sqlite3.OperationalError:
+            pass
+        
+        # Create index for efficient knowledge retrieval
+        try:
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_knowledge_scope_priority ON bot_knowledge(target_scope, priority, updated_at DESC)')
+        except sqlite3.OperationalError:
+            pass
+        
         conn.commit()
         conn.close()
         logger.info("Database initialized successfully")
@@ -538,19 +565,64 @@ class TelegramChatBot:
         conn.commit()
         conn.close()
     
-    def get_bot_knowledge(self):
-        """Get all knowledge entries combined as text for AI"""
+    def get_enhanced_knowledge(self, bot_type='main'):
+        """
+        Get knowledge with priority and scope filtering for enhanced AI understanding.
+        bot_type: 'main' for main bot, 'dm' for pyrogram DM bot
+        Returns: dict with 'super_knowledge' and 'regular_knowledge' lists
+        """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute('SELECT knowledge_text FROM bot_knowledge ORDER BY created_at ASC')
+        # Get active knowledge filtered by scope and ordered by priority
+        cursor.execute('''
+            SELECT id, title, knowledge_text, priority, target_scope, updated_at
+            FROM bot_knowledge
+            WHERE status = 'active' 
+            AND (target_scope = ? OR target_scope = 'both')
+            ORDER BY 
+                CASE priority 
+                    WHEN 'super' THEN 0 
+                    ELSE 1 
+                END,
+                updated_at DESC
+        ''', (f'{bot_type}_only',))
+        
         results = cursor.fetchall()
         conn.close()
         
-        if not results:
+        super_knowledge = []
+        regular_knowledge = []
+        
+        for row in results:
+            entry_id, title, text, priority, scope, updated_at = row
+            entry = {
+                'id': entry_id,
+                'title': title or f"Knowledge #{entry_id}",
+                'text': text,
+                'scope': scope,
+                'updated_at': updated_at
+            }
+            
+            if priority == 'super':
+                super_knowledge.append(entry)
+            else:
+                regular_knowledge.append(entry)
+        
+        return {
+            'super': super_knowledge,
+            'regular': regular_knowledge
+        }
+    
+    def get_bot_knowledge(self):
+        """Get all knowledge entries combined as text for AI (backward compatibility)"""
+        knowledge = self.get_enhanced_knowledge(bot_type='main')
+        all_entries = knowledge['super'] + knowledge['regular']
+        
+        if not all_entries:
             return None
         
-        return '\n\n'.join([row[0] for row in results])
+        return '\n\n'.join([entry['text'] for entry in all_entries])
     
     def get_all_bot_knowledge(self):
         """Get all knowledge entries with IDs for display"""
