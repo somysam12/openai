@@ -1809,6 +1809,11 @@ class TelegramChatBot:
             user_first_name = user.first_name or first_name_db or "Dost"
             user_username = user.username or username_db
             
+            # Get enhanced knowledge with priority system
+            knowledge_data = self.get_enhanced_knowledge(bot_type='main')
+            super_knowledge = knowledge_data['super']
+            regular_knowledge = knowledge_data['regular']
+            
             system_prompt = "Tum ek highly intelligent aur helpful AI assistant ho. Tumhe Hindi aur English dono languages mein expert tarike se baat karni aani hai."
             
             system_prompt += f"\n\nUser ka naam: {user_first_name}"
@@ -1821,19 +1826,45 @@ class TelegramChatBot:
             if is_group:
                 system_prompt += "\n\n👥 GROUP CONTEXT: Yeh ek group chat hai. Natural tareeke se interact karo. Owner @tgshaitaan ko hamesha special respect do."
             
-            if custom_knowledge:
-                system_prompt += f"\n\n📚 KNOWLEDGE BASE - CRITICAL INSTRUCTIONS:\n"
-                system_prompt += f"Tumhe niche detailed knowledge base diya gaya hai. Yeh tumhari PRIMARY source of information hai:\n\n"
-                system_prompt += f"=== START KNOWLEDGE BASE ===\n{custom_knowledge}\n=== END KNOWLEDGE BASE ===\n\n"
-                system_prompt += f"🎯 RULES FOR USING KNOWLEDGE:\n"
-                system_prompt += f"1. Jab bhi user kuch poochu, PEHLE knowledge base mein check karo\n"
-                system_prompt += f"2. Agar knowledge base mein answer mil jaye, toh WAHI detailed answer do\n"
-                system_prompt += f"3. Knowledge base ki information ko accurately aur completely use karo\n"
-                system_prompt += f"4. Products, services, pricing, features - SAB knowledge base se hi batana\n"
-                system_prompt += f"5. AGAR knowledge base mein koi information NAHI hai, tab normal conversation karo\n"
-                system_prompt += f"6. User ko helpful aur detailed response do, knowledge base ke saath match karte hue\n\n"
-                system_prompt += f"⚡ Jo bhi user poochu, knowledge base ko thoroughly check karo aur relevant information extract karke clear answer do!"
-            else:
+            # SUPER KNOWLEDGE - MANDATORY DIRECTIVES (Highest Priority)
+            if super_knowledge:
+                system_prompt += "\n\n" + "="*60
+                system_prompt += "\n🔴 SUPER KNOWLEDGE - MANDATORY ADMINISTRATOR DIRECTIVES 🔴"
+                system_prompt += "\n" + "="*60
+                system_prompt += "\n\n⚠️ CRITICAL: The following are MANDATORY instructions from your administrator."
+                system_prompt += "\nThese directives OVERRIDE everything else and MUST be followed EXACTLY."
+                system_prompt += "\nAdministrator's teachings have ABSOLUTE priority over all other data."
+                system_prompt += "\nYou MUST apply these directives VERBATIM unless they violate Telegram ToS.\n\n"
+                
+                for idx, entry in enumerate(super_knowledge, 1):
+                    system_prompt += f"🎯 MANDATORY DIRECTIVE #{idx} [{entry['id']}]: {entry['title']}\n"
+                    system_prompt += f"   Scope: {entry['scope'].upper().replace('_', ' ')}\n"
+                    system_prompt += f"   Updated: {entry['updated_at']}\n"
+                    system_prompt += f"   INSTRUCTION:\n"
+                    system_prompt += f"   {entry['text']}\n"
+                    system_prompt += f"   ⚡ MANDATORY: Apply this EXACTLY as specified!\n\n"
+                
+                system_prompt += "="*60 + "\n"
+            
+            # Regular Knowledge Base (Secondary Priority)
+            if regular_knowledge:
+                system_prompt += "\n\n📚 KNOWLEDGE BASE - PRIMARY INFORMATION SOURCE:\n"
+                system_prompt += "The following knowledge is your primary reference for answering questions.\n"
+                system_prompt += "Use this information accurately and completely.\n\n"
+                
+                for idx, entry in enumerate(regular_knowledge, 1):
+                    system_prompt += f"📌 Knowledge #{idx} [{entry['id']}]: {entry['title']}\n"
+                    system_prompt += f"   {entry['text']}\n\n"
+                
+                system_prompt += "\n🎯 RULES FOR USING KNOWLEDGE:\n"
+                system_prompt += "1. When user asks something, CHECK knowledge base FIRST\n"
+                system_prompt += "2. If answer exists in knowledge, provide THAT detailed answer\n"
+                system_prompt += "3. Use knowledge information accurately and completely\n"
+                system_prompt += "4. Products, services, pricing, features - ALL from knowledge base\n"
+                system_prompt += "5. If information is NOT in knowledge base, then do normal conversation\n"
+                system_prompt += "6. Always prefer administrator's directives (SUPER KNOWLEDGE) over regular knowledge\n"
+            
+            if not super_knowledge and not regular_knowledge:
                 system_prompt += "\n\n💬 Normal friendly conversation karo kyunki abhi knowledge base empty hai."
             
             messages = [
