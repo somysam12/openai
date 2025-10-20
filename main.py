@@ -4,6 +4,7 @@ import logging
 import sqlite3
 import re
 import threading
+import asyncio
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
@@ -1832,25 +1833,168 @@ class TelegramChatBot:
         elif data == "pyrogram_list_accounts":
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
-            cursor.execute('SELECT id, phone_number, account_name, is_active, is_authenticated, reply_count, last_active FROM pyrogram_accounts ORDER BY created_at DESC')
+            cursor.execute('SELECT id, phone_number, account_name, is_active, is_authenticated, reply_count, last_active, error_message FROM pyrogram_accounts ORDER BY created_at DESC')
             accounts = cursor.fetchall()
             conn.close()
             
             if not accounts:
                 text = "No accounts found!"
+                keyboard = [
+                    [InlineKeyboardButton("« Back", callback_data="admin_pyrogram_manager")]
+                ]
             else:
                 text = f"📱 *ALL PYROGRAM ACCOUNTS ({len(accounts)})*\n\n"
-                for acc_id, phone, name, is_active, is_auth, replies, last_active in accounts:
-                    status = "🟢" if is_active else "🔴"
-                    auth = "✅" if is_auth else "⚠️"
-                    text += f"{status}{auth} *{name}* (ID: {acc_id})\n"
-                    text += f"    +{phone}\n"
-                    text += f"    Replies: {replies} | Last: {last_active or 'Never'}\n\n"
+                keyboard = []
+                
+                for acc_id, phone, name, is_active, is_auth, replies, last_active, error in accounts[:10]:
+                    status = "🟢 Active" if is_active else "🔴 Inactive"
+                    auth = "✅ Authenticated" if is_auth else "⚠️ Not Authenticated"
+                    text += f"*{name}* (ID: {acc_id})\n"
+                    text += f"  Phone: +{phone}\n"
+                    text += f"  Status: {status}\n"
+                    text += f"  Auth: {auth}\n"
+                    text += f"  Replies: {replies}\n"
+                    if error:
+                        text += f"  Error: {error[:50]}...\n"
+                    text += f"  Last: {last_active or 'Never'}\n\n"
+                    
+                    # Add toggle button for each account
+                    if is_auth:
+                        toggle_text = "⏹️ Deactivate" if is_active else "▶️ Activate"
+                        keyboard.append([InlineKeyboardButton(
+                            f"{toggle_text} {name}",
+                            callback_data=f"pyro_toggle_{acc_id}"
+                        )])
+                
+                keyboard.append([InlineKeyboardButton("🗑️ Delete Account", callback_data="pyro_delete_menu")])
+                keyboard.append([InlineKeyboardButton("« Back", callback_data="admin_pyrogram_manager")])
             
-            keyboard = [
-                [InlineKeyboardButton("« Back", callback_data="admin_pyrogram_manager")]
-            ]
             await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+        
+        elif data.startswith("pyro_toggle_"):
+            account_id = int(data.split("_")[2])
+            
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Toggle is_active status
+            cursor.execute('''
+                UPDATE pyrogram_accounts
+                SET is_active = CASE 
+                    WHEN is_active = 1 THEN 0
+                    ELSE 1
+                END
+                WHERE id = ?
+            ''', (account_id,))
+            conn.commit()
+            
+            # Get new status
+            cursor.execute('SELECT is_active, account_name FROM pyrogram_accounts WHERE id = ?', (account_id,))
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result:
+                is_active, name = result
+                status_text = "activated" if is_active else "deactivated"
+                await query.answer(f"✅ {name} {status_text}!")
+                logger.info(f"Admin {user_id} {status_text} Pyrogram account #{account_id}")
+            
+            # Refresh list
+            await query.message.edit_reply_markup(reply_markup=None)
+            await asyncio.sleep(0.5)
+            
+            # Re-trigger list view
+            data = "pyrogram_list_accounts"
+            # Fall through to list view below
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT id, phone_number, account_name, is_active, is_authenticated, reply_count, last_active, error_message FROM pyrogram_accounts ORDER BY created_at DESC')
+            accounts = cursor.fetchall()
+            conn.close()
+            
+            text = f"📱 *ALL PYROGRAM ACCOUNTS ({len(accounts)})*\n\n"
+            keyboard = []
+            
+            for acc_id, phone, name, is_active, is_auth, replies, last_active, error in accounts[:10]:
+                status = "🟢 Active" if is_active else "🔴 Inactive"
+                auth = "✅ Authenticated" if is_auth else "⚠️ Not Authenticated"
+                text += f"*{name}* (ID: {acc_id})\n"
+                text += f"  Phone: +{phone}\n"
+                text += f"  Status: {status}\n"
+                text += f"  Auth: {auth}\n"
+                text += f"  Replies: {replies}\n"
+                if error:
+                    text += f"  Error: {error[:50]}...\n"
+                text += f"  Last: {last_active or 'Never'}\n\n"
+                
+                if is_auth:
+                    toggle_text = "⏹️ Deactivate" if is_active else "▶️ Activate"
+                    keyboard.append([InlineKeyboardButton(
+                        f"{toggle_text} {name}",
+                        callback_data=f"pyro_toggle_{acc_id}"
+                    )])
+            
+            keyboard.append([InlineKeyboardButton("🗑️ Delete Account", callback_data="pyro_delete_menu")])
+            keyboard.append([InlineKeyboardButton("« Back", callback_data="admin_pyrogram_manager")])
+            
+            await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+        
+        elif data == "pyro_delete_menu":
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT id, phone_number, account_name FROM pyrogram_accounts ORDER BY created_at DESC')
+            accounts = cursor.fetchall()
+            conn.close()
+            
+            if not accounts:
+                await query.edit_message_text(
+                    "No accounts to delete!",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("« Back", callback_data="pyrogram_list_accounts")
+                    ]])
+                )
+                return
+            
+            text = "🗑️ *DELETE PYROGRAM ACCOUNT*\n\n"
+            text += "⚠️ WARNING: This will permanently delete the account from the database!\n\n"
+            text += "Select account to delete:\n\n"
+            
+            keyboard = []
+            for acc_id, phone, name in accounts[:10]:
+                text += f"• {name} (+{phone})\n"
+                keyboard.append([InlineKeyboardButton(
+                    f"🗑️ Delete {name}",
+                    callback_data=f"pyro_delete_{acc_id}"
+                )])
+            
+            keyboard.append([InlineKeyboardButton("« Cancel", callback_data="pyrogram_list_accounts")])
+            
+            await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+        
+        elif data.startswith("pyro_delete_"):
+            account_id = int(data.split("_")[2])
+            
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT account_name FROM pyrogram_accounts WHERE id = ?', (account_id,))
+            result = cursor.fetchone()
+            
+            if result:
+                account_name = result[0]
+                cursor.execute('DELETE FROM pyrogram_accounts WHERE id = ?', (account_id,))
+                conn.commit()
+                await query.answer(f"🗑️ {account_name} deleted!")
+                logger.info(f"Admin {user_id} deleted Pyrogram account #{account_id}: {account_name}")
+            
+            conn.close()
+            
+            await query.edit_message_text(
+                f"✅ *Account Deleted!*\n\n{account_name} has been removed from the database.",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("« Back to List", callback_data="pyrogram_list_accounts")
+                ]]),
+                parse_mode='Markdown'
+            )
         
         elif data == "pyrogram_start_all":
             await query.answer("⚠️ Feature coming soon! Use start_both_bots.py to start Pyrogram bots.")
@@ -2228,29 +2372,59 @@ class TelegramChatBot:
                 phone = state.split(":", 1)[1]
                 account_name = user_message.strip()
                 
-                conn = sqlite3.connect(self.db_path)
-                cursor = conn.cursor()
-                cursor.execute('''
-                    INSERT INTO pyrogram_accounts (phone_number, account_name, is_active, is_authenticated)
-                    VALUES (?, ?, 0, 0)
-                ''', (phone, account_name))
-                conn.commit()
-                account_id = cursor.lastrowid
-                conn.close()
-                
-                del self.admin_state[user.id]
-                await update.message.reply_text(
-                    f"✅ *Pyrogram Account Added!*\n\n"
-                    f"*Account Name:* {account_name}\n"
-                    f"*Phone:* +{phone}\n\n"
-                    f"⚠️ *IMPORTANT:* To activate this account, you need to:\n"
-                    f"1. Set up Pyrogram credentials (API ID & Hash)\n"
-                    f"2. Authenticate with OTP\n\n"
-                    f"Check the Pyrogram manager to activate accounts.",
-                    reply_markup=self.get_admin_keyboard(),
-                    parse_mode='Markdown'
-                )
-                logger.info(f"Admin {user.id} added Pyrogram account: {account_name} ({phone})")
+                try:
+                    conn = sqlite3.connect(self.db_path)
+                    cursor = conn.cursor()
+                    
+                    # Check if phone already exists
+                    cursor.execute('SELECT id, account_name FROM pyrogram_accounts WHERE phone_number = ?', (phone,))
+                    existing = cursor.fetchone()
+                    
+                    if existing:
+                        conn.close()
+                        await update.message.reply_text(
+                            f"❌ *Phone Already Added!*\n\n"
+                            f"Phone +{phone} is already registered as:\n"
+                            f"*{existing[1]}* (ID: {existing[0]})\n\n"
+                            f"Please use a different phone number.",
+                            reply_markup=self.get_admin_keyboard(),
+                            parse_mode='Markdown'
+                        )
+                        del self.admin_state[user.id]
+                        return
+                    
+                    cursor.execute('''
+                        INSERT INTO pyrogram_accounts (phone_number, account_name, is_active, is_authenticated)
+                        VALUES (?, ?, 0, 0)
+                    ''', (phone, account_name))
+                    conn.commit()
+                    account_id = cursor.lastrowid
+                    conn.close()
+                    
+                    del self.admin_state[user.id]
+                    await update.message.reply_text(
+                        f"✅ *Pyrogram Account Added!*\n\n"
+                        f"*Account Name:* {account_name}\n"
+                        f"*Phone:* +{phone}\n"
+                        f"*Account ID:* {account_id}\n\n"
+                        f"⚠️ *IMPORTANT:* To activate this account, you need to:\n"
+                        f"1. Set environment variables: TELEGRAM_API_ID and TELEGRAM_API_HASH\n"
+                        f"2. Run authentication script to get OTP\n"
+                        f"3. Session will be saved for auto-replies\n\n"
+                        f"📝 *Note:* The account is added but not active yet. Follow setup instructions to authenticate.",
+                        reply_markup=self.get_admin_keyboard(),
+                        parse_mode='Markdown'
+                    )
+                    logger.info(f"Admin {user.id} added Pyrogram account #{account_id}: {account_name} (+{phone})")
+                except Exception as e:
+                    logger.error(f"Failed to add Pyrogram account: {e}")
+                    await update.message.reply_text(
+                        f"❌ Failed to add account: {str(e)}\n\n"
+                        f"Please try again or contact support.",
+                        reply_markup=self.get_admin_keyboard()
+                    )
+                    if user.id in self.admin_state:
+                        del self.admin_state[user.id]
                 return
         
         if user.id in self.user_to_admin_chat:
