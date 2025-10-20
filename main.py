@@ -485,6 +485,80 @@ class TelegramChatBot:
         
         return detailed_stats
     
+    def add_super_knowledge(self, title: str, knowledge_text: str, target_scope: str):
+        """Add super knowledge with priority and scope"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO bot_knowledge (title, knowledge_text, priority, target_scope, status, updated_at)
+            VALUES (?, ?, 'super', ?, 'active', CURRENT_TIMESTAMP)
+        ''', (title, knowledge_text, target_scope))
+        
+        conn.commit()
+        knowledge_id = cursor.lastrowid
+        conn.close()
+        logger.info(f"✅ Added super knowledge: {title} (scope: {target_scope})")
+        return knowledge_id
+    
+    def get_super_knowledge_list(self):
+        """Get all super knowledge entries for display"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, title, knowledge_text, target_scope, status, updated_at
+            FROM bot_knowledge
+            WHERE priority = 'super'
+            ORDER BY updated_at DESC
+        ''')
+        results = cursor.fetchall()
+        conn.close()
+        
+        entries = []
+        for row in results:
+            entry_id, title, text, scope, status, updated_at = row
+            entries.append({
+                'id': entry_id,
+                'title': title or f"Knowledge #{entry_id}",
+                'text': text,
+                'scope': scope,
+                'status': status,
+                'updated_at': updated_at
+            })
+        
+        return entries
+    
+    def delete_super_knowledge(self, knowledge_id: int):
+        """Delete super knowledge by ID"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM bot_knowledge WHERE id = ? AND priority = "super"', (knowledge_id,))
+        deleted = cursor.rowcount
+        
+        conn.commit()
+        conn.close()
+        return deleted > 0
+    
+    def toggle_knowledge_status(self, knowledge_id: int):
+        """Toggle knowledge status between active/inactive"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE bot_knowledge 
+            SET status = CASE 
+                WHEN status = 'active' THEN 'inactive'
+                ELSE 'active'
+            END,
+            updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (knowledge_id,))
+        
+        conn.commit()
+        conn.close()
+    
     def get_deactivated_keys(self):
         """Get list of deactivated API keys"""
         conn = sqlite3.connect(self.db_path)
@@ -514,12 +588,8 @@ class TelegramChatBot:
     def get_admin_keyboard(self):
         keyboard = [
             [
-                InlineKeyboardButton("📚 View Knowledge", callback_data="admin_view_knowledge"),
-                InlineKeyboardButton("✏️ Add Knowledge", callback_data="admin_set_knowledge")
-            ],
-            [
-                InlineKeyboardButton("🗑️ Delete Knowledge", callback_data="admin_delete_knowledge"),
-                InlineKeyboardButton("💬 Message User", callback_data="admin_message_user")
+                InlineKeyboardButton("🧠 Super Knowledge", callback_data="admin_super_knowledge"),
+                InlineKeyboardButton("📚 Knowledge Base", callback_data="admin_knowledge_menu")
             ],
             [
                 InlineKeyboardButton("🔑 Keywords", callback_data="admin_keywords"),
@@ -538,10 +608,11 @@ class TelegramChatBot:
                 InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast")
             ],
             [
-                InlineKeyboardButton("🏘️ Group Sessions", callback_data="admin_group_sessions"),
-                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session")
+                InlineKeyboardButton("💬 Message User", callback_data="admin_message_user"),
+                InlineKeyboardButton("🏘️ Group Sessions", callback_data="admin_group_sessions")
             ],
             [
+                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session"),
                 InlineKeyboardButton("🔄 Refresh Panel", callback_data="admin_refresh")
             ]
         ]
@@ -1454,6 +1525,113 @@ class TelegramChatBot:
                 parse_mode='Markdown'
             )
             logger.info(f"Admin {user_id} started group session with {group_name} ({group_id})")
+        
+        elif data == "admin_super_knowledge":
+            keyboard = [
+                [InlineKeyboardButton("➕ Add Super Knowledge", callback_data="admin_add_super_knowledge")],
+                [InlineKeyboardButton("📋 List/Manage", callback_data="admin_list_super_knowledge")],
+                [InlineKeyboardButton("« Back", callback_data="admin_refresh")]
+            ]
+            await query.edit_message_text(
+                "🧠 *SUPER KNOWLEDGE*\n\n"
+                "⚡ Super Knowledge = MANDATORY Administrator Directives\n\n"
+                "*Features:*\n"
+                "• Highest priority - bot MUST follow\n"
+                "• Target specific bots (Main/DM/Both)\n"
+                "• Your teachings override everything\n\n"
+                "Choose an option:",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_knowledge_menu":
+            keyboard = [
+                [InlineKeyboardButton("📚 View Knowledge", callback_data="admin_view_knowledge_old")],
+                [InlineKeyboardButton("✏️ Add Knowledge", callback_data="admin_set_knowledge")],
+                [InlineKeyboardButton("🗑️ Delete Knowledge", callback_data="admin_delete_knowledge")],
+                [InlineKeyboardButton("« Back", callback_data="admin_refresh")]
+            ]
+            await query.edit_message_text(
+                "📚 *REGULAR KNOWLEDGE BASE*\n\n"
+                "Standard knowledge base for bot responses.\n\n"
+                "Choose an option:",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_add_super_knowledge":
+            self.admin_state[user_id] = "waiting_super_knowledge_title"
+            await query.edit_message_text(
+                "🧠 *ADD SUPER KNOWLEDGE*\n\n"
+                "Step 1/3: Enter a TITLE for this knowledge\n\n"
+                "*Example:* `Product Pricing Rules`\n\n"
+                "Send /cancel to cancel.",
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_list_super_knowledge":
+            entries = self.get_super_knowledge_list()
+            
+            if not entries:
+                await query.edit_message_text(
+                    "🧠 *SUPER KNOWLEDGE*\n\n"
+                    "No super knowledge added yet!\n\n"
+                    "Add your first MANDATORY directive to teach the bots.",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("« Back", callback_data="admin_super_knowledge")
+                    ]]),
+                    parse_mode='Markdown'
+                )
+                return
+            
+            text = f"🧠 *SUPER KNOWLEDGE LIST* ({len(entries)} entries)\n\n"
+            
+            for entry in entries[:10]:  # Show first 10
+                status_icon = "✅" if entry['status'] == 'active' else "❌"
+                scope_map = {
+                    'main_only': '🤖 Main Bot Only',
+                    'dm_only': '💬 DM Bot Only',
+                    'both': '🤝 Both Bots'
+                }
+                scope_text = scope_map.get(entry['scope'], entry['scope'])
+                
+                text += f"{status_icon} *#{entry['id']}: {entry['title']}*\n"
+                text += f"   Scope: {scope_text}\n"
+                text += f"   Updated: {entry['updated_at'][:10]}\n"
+                text += f"   Preview: {entry['text'][:50]}...\n\n"
+            
+            if len(entries) > 10:
+                text += f"_...and {len(entries) - 10} more entries_\n\n"
+            
+            text += "\n💡 Send knowledge ID number to manage it\n"
+            text += "Example: Send `5` to manage knowledge #5"
+            
+            self.admin_state[user_id] = "waiting_super_knowledge_id"
+            await query.edit_message_text(
+                text,
+                parse_mode='Markdown'
+            )
+        
+        elif data.startswith("sk_toggle_"):
+            # Toggle super knowledge active/inactive
+            knowledge_id = int(data.split("_")[2])
+            self.toggle_knowledge_status(knowledge_id)
+            await query.answer("✅ Status toggled!")
+            # Refresh the manage view
+            await self.show_super_knowledge_manage(query, user_id, knowledge_id)
+        
+        elif data.startswith("sk_delete_"):
+            # Delete super knowledge
+            knowledge_id = int(data.split("_")[2])
+            self.delete_super_knowledge(knowledge_id)
+            await query.answer("🗑️ Deleted!")
+            await query.edit_message_text(
+                "✅ *Super Knowledge Deleted!*",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("« Back to List", callback_data="admin_list_super_knowledge")
+                ]]),
+                parse_mode='Markdown'
+            )
         
         elif data == "admin_refresh":
             await query.edit_message_text(
