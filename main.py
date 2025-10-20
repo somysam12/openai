@@ -458,6 +458,32 @@ class TelegramChatBot:
         
         return detailed_stats
     
+    def get_deactivated_keys(self):
+        """Get list of deactivated API keys"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT key_index, deactivation_reason, deactivated_at
+            FROM api_key_stats
+            WHERE is_deactivated = 1
+            ORDER BY key_index
+        ''')
+        results = cursor.fetchall()
+        conn.close()
+        
+        deactivated_keys = []
+        for row in results:
+            key_index, reason, deactivated_at = row
+            deactivated_keys.append({
+                'key_index': key_index,
+                'key_number': key_index + 1,  # Human readable (1-indexed)
+                'reason': reason or 'Unknown',
+                'deactivated_at': deactivated_at
+            })
+        
+        return deactivated_keys
+    
     def get_admin_keyboard(self):
         keyboard = [
             [
@@ -1200,6 +1226,49 @@ class TelegramChatBot:
             
             await query.edit_message_text(
                 stats_text,
+                reply_markup=self.get_admin_keyboard(),
+                parse_mode='Markdown'
+            )
+        
+        elif data == "admin_deactivated_keys":
+            deactivated = self.get_deactivated_keys()
+            
+            if not deactivated:
+                msg_text = "🟢 *No Deactivated API Keys!*\n\n"
+                msg_text += "Sab API keys kaam kar rahe hain! ✅"
+            else:
+                msg_text = f"🔴 *Deactivated API Keys ({len(deactivated)})*\n\n"
+                msg_text += "⚠️ Ye API keys deactivated ho chuke hain:\n\n"
+                
+                for key in deactivated:
+                    key_num = key['key_number']
+                    reason = key['reason']
+                    deactivated_at = key['deactivated_at']
+                    
+                    # Format reason in Hindi/English
+                    if reason == "account_deactivated":
+                        reason_text = "❌ Account Deactivated (401)"
+                    elif reason == "forbidden":
+                        reason_text = "🚫 Forbidden (403)"
+                    elif reason == "invalid_key":
+                        reason_text = "🔑 Invalid API Key"
+                    elif reason == "rate_limit":
+                        reason_text = "⏱️ Rate Limit Exceeded"
+                    else:
+                        reason_text = f"❓ {reason}"
+                    
+                    msg_text += f"*Key #{key_num}*\n"
+                    msg_text += f"  └ Reason: {reason_text}\n"
+                    if deactivated_at:
+                        msg_text += f"  └ Time: {deactivated_at}\n"
+                    msg_text += "\n"
+                
+                msg_text += "━━━━━━━━━━━━━━━━━\n\n"
+                msg_text += "💡 *Note:* Bot automatically switches to working keys.\n"
+                msg_text += "Deactivated keys ko replace kar dijiye naye keys se."
+            
+            await query.edit_message_text(
+                msg_text,
                 reply_markup=self.get_admin_keyboard(),
                 parse_mode='Markdown'
             )
