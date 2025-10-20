@@ -473,19 +473,22 @@ class TelegramChatBot:
                 InlineKeyboardButton("🔑 API Key Stats", callback_data="admin_api_stats")
             ],
             [
-                InlineKeyboardButton("📝 Auto Messages", callback_data="admin_auto_messages"),
-                InlineKeyboardButton("👥 View Users", callback_data="admin_view_users")
+                InlineKeyboardButton("🔴 Deactivated Keys", callback_data="admin_deactivated_keys"),
+                InlineKeyboardButton("📝 Auto Messages", callback_data="admin_auto_messages")
             ],
             [
-                InlineKeyboardButton("📂 View User Chats", callback_data="admin_view_user_chats"),
-                InlineKeyboardButton("🗑️ Delete Chats", callback_data="admin_delete_chats_menu")
+                InlineKeyboardButton("👥 View Users", callback_data="admin_view_users"),
+                InlineKeyboardButton("📂 View User Chats", callback_data="admin_view_user_chats")
             ],
             [
-                InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
-                InlineKeyboardButton("🏘️ Group Sessions", callback_data="admin_group_sessions")
+                InlineKeyboardButton("🗑️ Delete Chats", callback_data="admin_delete_chats_menu"),
+                InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast")
             ],
             [
-                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session"),
+                InlineKeyboardButton("🏘️ Group Sessions", callback_data="admin_group_sessions"),
+                InlineKeyboardButton("🔚 End Session", callback_data="admin_end_session")
+            ],
+            [
                 InlineKeyboardButton("🔄 Refresh Panel", callback_data="admin_refresh")
             ]
         ]
