@@ -191,6 +191,8 @@ class TelegramChatBot:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 phone_number TEXT UNIQUE NOT NULL,
                 account_name TEXT,
+                api_id TEXT,
+                api_hash TEXT,
                 session_string TEXT,
                 is_active INTEGER DEFAULT 0,
                 is_authenticated INTEGER DEFAULT 0,
@@ -316,6 +318,16 @@ class TelegramChatBot:
         # Create index for efficient knowledge retrieval
         try:
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_knowledge_scope_priority ON bot_knowledge(target_scope, priority, updated_at DESC)')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('ALTER TABLE pyrogram_accounts ADD COLUMN api_id TEXT')
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            cursor.execute('ALTER TABLE pyrogram_accounts ADD COLUMN api_hash TEXT')
         except sqlite3.OperationalError:
             pass
         
@@ -1945,6 +1957,7 @@ class TelegramChatBot:
                 keyboard = [
                     [InlineKeyboardButton("➕ Add Account", callback_data="pyrogram_add_account")],
                     [InlineKeyboardButton("📋 View All", callback_data="pyrogram_list_accounts")],
+                    [InlineKeyboardButton("🧠 Manage Account Knowledge", callback_data="pyrogram_manage_knowledge")],
                     [InlineKeyboardButton("▶️ Start All", callback_data="pyrogram_start_all")],
                     [InlineKeyboardButton("⏹️ Stop All", callback_data="pyrogram_stop_all")],
                     [InlineKeyboardButton("« Back", callback_data="admin_refresh")]
@@ -1957,16 +1970,17 @@ class TelegramChatBot:
             )
         
         elif data == "pyrogram_add_account":
-            self.admin_state[user_id] = "waiting_pyrogram_phone"
+            self.admin_state[user_id] = "waiting_pyrogram_api_id"
             await query.edit_message_text(
                 "📱 *ADD PYROGRAM ACCOUNT*\n\n"
-                "Step 1/2: Send the phone number\n\n"
-                "*Format:* Country code + number (without + or spaces)\n"
-                "*Example:* 919876543210\n\n"
-                "⚠️ Make sure you have:\n"
-                "• Access to this phone number\n"
-                "• Can receive OTP on this number\n"
-                "• Telegram account on this number\n\n"
+                "Step 1/5: Send your Telegram API ID\n\n"
+                "*Where to get it?*\n"
+                "1. Visit: https://my.telegram.org/apps\n"
+                "2. Login with your phone number\n"
+                "3. Create an app (if not already done)\n"
+                "4. Copy the *API ID* number\n\n"
+                "*Example:* 12345678\n\n"
+                "⚠️ Each bot can have its own API credentials!\n\n"
                 "Send /cancel to cancel.",
                 parse_mode='Markdown'
             )
@@ -2120,6 +2134,7 @@ class TelegramChatBot:
             cursor.execute('SELECT account_name FROM pyrogram_accounts WHERE id = ?', (account_id,))
             result = cursor.fetchone()
             
+            account_name = "Unknown"
             if result:
                 account_name = result[0]
                 cursor.execute('DELETE FROM pyrogram_accounts WHERE id = ?', (account_id,))
@@ -2156,6 +2171,148 @@ class TelegramChatBot:
         
         elif data == "pyrogram_stop_all":
             await query.answer("ℹ️ Stop the process/deployment to stop all bots.")
+        
+        elif data == "pyrogram_manage_knowledge":
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT id, phone_number, account_name, is_authenticated FROM pyrogram_accounts ORDER BY created_at DESC')
+            accounts = cursor.fetchall()
+            conn.close()
+            
+            if not accounts:
+                await query.edit_message_text(
+                    "📱 *ACCOUNT KNOWLEDGE MANAGER*\n\n"
+                    "No accounts found!\n\n"
+                    "Add accounts first before managing their knowledge.",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("« Back", callback_data="admin_pyrogram_manager")
+                    ]]),
+                    parse_mode='Markdown'
+                )
+                return
+            
+            text = f"📱 *SELECT ACCOUNT TO MANAGE KNOWLEDGE*\n\n"
+            text += f"Total Accounts: {len(accounts)}\n\n"
+            text += "Choose an account to manage its custom knowledge:\n\n"
+            
+            keyboard = []
+            for acc_id, phone, name, is_auth in accounts[:10]:
+                auth_icon = "✅" if is_auth else "⚠️"
+                keyboard.append([InlineKeyboardButton(
+                    f"{auth_icon} {name} (+{phone})",
+                    callback_data=f"pyro_know_{acc_id}"
+                )])
+            
+            keyboard.append([InlineKeyboardButton("« Back", callback_data="admin_pyrogram_manager")])
+            
+            await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+        
+        elif data.startswith("pyro_know_"):
+            account_id = int(data.split("_")[2])
+            
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT account_name, phone_number FROM pyrogram_accounts WHERE id = ?', (account_id,))
+            account = cursor.fetchone()
+            
+            if not account:
+                await query.answer("❌ Account not found!")
+                return
+            
+            account_name, phone = account
+            
+            # Get knowledge count
+            cursor.execute('SELECT COUNT(*) FROM account_knowledge WHERE account_id = ?', (account_id,))
+            knowledge_count = cursor.fetchone()[0]
+            conn.close()
+            
+            text = f"🧠 *KNOWLEDGE FOR: {account_name}*\n\n"
+            text += f"📱 Phone: +{phone}\n"
+            text += f"📚 Knowledge Entries: {knowledge_count}\n\n"
+            text += "What would you like to do?"
+            
+            keyboard = [
+                [InlineKeyboardButton("➕ Add Knowledge", callback_data=f"pyro_know_add_{account_id}")],
+                [InlineKeyboardButton("📋 View Knowledge", callback_data=f"pyro_know_list_{account_id}")],
+                [InlineKeyboardButton("🗑️ Delete Knowledge", callback_data=f"pyro_know_del_{account_id}")],
+                [InlineKeyboardButton("« Back", callback_data="pyrogram_manage_knowledge")]
+            ]
+            
+            await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+        
+        elif data.startswith("pyro_know_add_"):
+            account_id = int(data.split("_")[3])
+            self.admin_state[user_id] = f"waiting_account_knowledge_text:{account_id}"
+            await query.edit_message_text(
+                f"🧠 *ADD ACCOUNT KNOWLEDGE*\n\n"
+                f"Send the knowledge/instruction for this specific account.\n\n"
+                f"*Example:*\n"
+                f"\"When users ask about pricing, mention our special discount code SAVE20 for 20% off.\"\n\n"
+                f"⚠️ This knowledge will ONLY apply to this specific account!\n\n"
+                f"Send /cancel to cancel.",
+                parse_mode='Markdown'
+            )
+        
+        elif data.startswith("pyro_know_list_"):
+            account_id = int(data.split("_")[3])
+            
+            entries = self.get_account_knowledge_list(account_id)
+            
+            if not entries:
+                await query.edit_message_text(
+                    f"🧠 *ACCOUNT KNOWLEDGE*\n\n"
+                    f"No knowledge added for this account yet!\n\n"
+                    f"Add custom knowledge to customize this bot's behavior.",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("« Back", callback_data=f"pyro_know_{account_id}")
+                    ]]),
+                    parse_mode='Markdown'
+                )
+                return
+            
+            text = f"🧠 *ACCOUNT KNOWLEDGE LIST* ({len(entries)} entries)\n\n"
+            
+            for entry in entries[:10]:
+                status_icon = "✅" if entry['status'] == 'active' else "❌"
+                priority_icon = "🔥" if entry['priority'] == 'super' else "📌"
+                
+                text += f"{status_icon} {priority_icon} *#{entry['id']}*\n"
+                text += f"   {entry['text'][:80]}...\n"
+                text += f"   Updated: {entry['updated_at'][:10]}\n\n"
+            
+            if len(entries) > 10:
+                text += f"_...and {len(entries) - 10} more entries_"
+            
+            await query.edit_message_text(
+                text,
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("« Back", callback_data=f"pyro_know_{account_id}")
+                ]]),
+                parse_mode='Markdown'
+            )
+        
+        elif data.startswith("pyro_know_del_"):
+            account_id = int(data.split("_")[3])
+            
+            entries = self.get_account_knowledge_list(account_id)
+            
+            if not entries:
+                await query.edit_message_text(
+                    "No knowledge to delete!",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("« Back", callback_data=f"pyro_know_{account_id}")
+                    ]])
+                )
+                return
+            
+            text = f"🗑️ *DELETE ACCOUNT KNOWLEDGE*\n\n"
+            text += "Send the knowledge ID number to delete:\n\n"
+            
+            for entry in entries[:10]:
+                text += f"*#{entry['id']}:* {entry['text'][:50]}...\n"
+            
+            self.admin_state[user_id] = f"waiting_account_knowledge_delete:{account_id}"
+            await query.edit_message_text(text, parse_mode='Markdown')
         
         elif data == "admin_refresh":
             await query.edit_message_text(
@@ -2546,20 +2703,76 @@ class TelegramChatBot:
                     )
                 return
             
-            elif state == "waiting_pyrogram_phone":
-                phone = user_message.strip().replace('+', '').replace(' ', '').replace('-', '')
-                if not phone.isdigit() or len(phone) < 10:
+            elif state == "waiting_pyrogram_api_id":
+                api_id = user_message.strip()
+                if not api_id.isdigit():
                     await update.message.reply_text(
-                        "❌ Invalid phone number! Please send a valid phone number.\n\n"
-                        "*Example:* 919876543210 (without + or spaces)",
+                        "❌ Invalid API ID! Please send only numbers.\n\n"
+                        "*Example:* 12345678\n\n"
+                        "Send /cancel to cancel.",
                         parse_mode='Markdown'
                     )
                     return
                 
-                self.admin_state[user.id] = f"waiting_pyrogram_name:{phone}"
+                self.admin_state[user.id] = f"waiting_pyrogram_api_hash:{api_id}"
+                await update.message.reply_text(
+                    f"✅ *API ID:* `{api_id}`\n\n"
+                    f"Step 2/5: Send your Telegram API Hash\n\n"
+                    f"*Where to find it?*\n"
+                    f"On the same page: https://my.telegram.org/apps\n"
+                    f"Copy the *API Hash* string\n\n"
+                    f"*Example:* 1a2b3c4d5e6f7g8h9i0j\n\n"
+                    f"Send /cancel to cancel.",
+                    parse_mode='Markdown'
+                )
+                return
+            
+            elif state.startswith("waiting_pyrogram_api_hash:"):
+                api_id = state.split(":", 1)[1]
+                api_hash = user_message.strip()
+                
+                if len(api_hash) < 10:
+                    await update.message.reply_text(
+                        "❌ API Hash seems too short! Please check and send again.\n\n"
+                        "Send /cancel to cancel.",
+                        parse_mode='Markdown'
+                    )
+                    return
+                
+                self.admin_state[user.id] = f"waiting_pyrogram_phone:{api_id}|||{api_hash}"
+                await update.message.reply_text(
+                    f"✅ *API Hash:* `{api_hash[:10]}...`\n\n"
+                    f"Step 3/5: Send the phone number\n\n"
+                    f"*Format:* Country code + number (without + or spaces)\n"
+                    f"*Example:* 919876543210\n\n"
+                    f"⚠️ Make sure you have:\n"
+                    f"• Access to this phone number\n"
+                    f"• Can receive OTP on this number\n"
+                    f"• Telegram account on this number\n\n"
+                    f"Send /cancel to cancel.",
+                    parse_mode='Markdown'
+                )
+                return
+            
+            elif state.startswith("waiting_pyrogram_phone:"):
+                parts = state.split(":", 1)[1].split("|||")
+                api_id = parts[0]
+                api_hash = parts[1]
+                phone = user_message.strip().replace('+', '').replace(' ', '').replace('-', '')
+                
+                if not phone.isdigit() or len(phone) < 10:
+                    await update.message.reply_text(
+                        "❌ Invalid phone number! Please send a valid phone number.\n\n"
+                        "*Example:* 919876543210 (without + or spaces)\n\n"
+                        "Send /cancel to cancel.",
+                        parse_mode='Markdown'
+                    )
+                    return
+                
+                self.admin_state[user.id] = f"waiting_pyrogram_name:{api_id}|||{api_hash}|||{phone}"
                 await update.message.reply_text(
                     f"✅ *Phone:* `+{phone}`\n\n"
-                    f"Now send a NAME for this account\n\n"
+                    f"Step 4/5: Send a NAME for this account\n\n"
                     f"*Example:* `Personal Account 1` or `Business DM Bot`\n\n"
                     f"Send /cancel to cancel.",
                     parse_mode='Markdown'
@@ -2567,7 +2780,10 @@ class TelegramChatBot:
                 return
             
             elif state.startswith("waiting_pyrogram_name:"):
-                phone = state.split(":", 1)[1]
+                parts = state.split(":", 1)[1].split("|||")
+                api_id = parts[0]
+                api_hash = parts[1]
+                phone = parts[2]
                 account_name = user_message.strip()
                 
                 try:
@@ -2591,29 +2807,62 @@ class TelegramChatBot:
                         del self.admin_state[user.id]
                         return
                     
+                    # Insert account with API credentials
                     cursor.execute('''
-                        INSERT INTO pyrogram_accounts (phone_number, account_name, is_active, is_authenticated)
-                        VALUES (?, ?, 0, 0)
-                    ''', (phone, account_name))
+                        INSERT INTO pyrogram_accounts (phone_number, account_name, api_id, api_hash, is_active, is_authenticated)
+                        VALUES (?, ?, ?, ?, 0, 0)
+                    ''', (phone, account_name, api_id, api_hash))
                     conn.commit()
                     account_id = cursor.lastrowid
                     conn.close()
                     
-                    del self.admin_state[user.id]
+                    # Now request OTP
                     await update.message.reply_text(
-                        f"✅ *Pyrogram Account Added!*\n\n"
-                        f"*Account Name:* {account_name}\n"
+                        f"✅ *Account Details Saved!*\n\n"
+                        f"*Name:* {account_name}\n"
                         f"*Phone:* +{phone}\n"
-                        f"*Account ID:* {account_id}\n\n"
-                        f"⚠️ *IMPORTANT:* To activate this account, you need to:\n"
-                        f"1. Set environment variables: TELEGRAM_API_ID and TELEGRAM_API_HASH\n"
-                        f"2. Run authentication script to get OTP\n"
-                        f"3. Session will be saved for auto-replies\n\n"
-                        f"📝 *Note:* The account is added but not active yet. Follow setup instructions to authenticate.",
-                        reply_markup=self.get_admin_keyboard(),
+                        f"*API ID:* {api_id}\n\n"
+                        f"🔐 Sending OTP to +{phone}...\n\n"
+                        f"Please wait...",
                         parse_mode='Markdown'
                     )
-                    logger.info(f"Admin {user.id} added Pyrogram account #{account_id}: {account_name} (+{phone})")
+                    
+                    # Import and use pyrogram auth
+                    from pyrogram_auto_auth import PyrogramAuthenticator
+                    authenticator = PyrogramAuthenticator(self.db_path)
+                    
+                    # Request OTP
+                    success, phone_code_hash = await authenticator.request_code_only(phone, int(api_id), api_hash)
+                    
+                    if success:
+                        self.admin_state[user.id] = f"waiting_pyrogram_otp:{account_id}|||{phone}|||{api_id}|||{api_hash}|||{phone_code_hash}"
+                        await update.message.reply_text(
+                            f"✅ *OTP Sent Successfully!*\n\n"
+                            f"Step 5/5: Check your Telegram app on +{phone}\n\n"
+                            f"📩 You should have received a login code.\n\n"
+                            f"*Send the OTP code here*\n"
+                            f"*Example:* 12345\n\n"
+                            f"⚠️ Code expires in a few minutes!\n\n"
+                            f"Send /cancel to cancel.",
+                            parse_mode='Markdown'
+                        )
+                        logger.info(f"OTP requested for account #{account_id} (+{phone})")
+                    else:
+                        await update.message.reply_text(
+                            f"❌ *Failed to send OTP!*\n\n"
+                            f"Error: {phone_code_hash}\n\n"
+                            f"Please try again later or check your credentials.",
+                            reply_markup=self.get_admin_keyboard(),
+                            parse_mode='Markdown'
+                        )
+                        # Delete the account
+                        conn = sqlite3.connect(self.db_path)
+                        cursor = conn.cursor()
+                        cursor.execute('DELETE FROM pyrogram_accounts WHERE id = ?', (account_id,))
+                        conn.commit()
+                        conn.close()
+                        del self.admin_state[user.id]
+                    
                 except Exception as e:
                     logger.error(f"Failed to add Pyrogram account: {e}")
                     await update.message.reply_text(
@@ -2623,6 +2872,140 @@ class TelegramChatBot:
                     )
                     if user.id in self.admin_state:
                         del self.admin_state[user.id]
+                return
+            
+            elif state.startswith("waiting_pyrogram_otp:"):
+                parts = state.split(":", 1)[1].split("|||")
+                account_id = int(parts[0])
+                phone = parts[1]
+                api_id = parts[2]
+                api_hash = parts[3]
+                phone_code_hash = parts[4]
+                otp_code = user_message.strip()
+                
+                if not otp_code.isdigit() or len(otp_code) != 5:
+                    await update.message.reply_text(
+                        "❌ Invalid OTP! Please send the 5-digit code.\n\n"
+                        "*Example:* 12345\n\n"
+                        "Send /cancel to cancel.",
+                        parse_mode='Markdown'
+                    )
+                    return
+                
+                await update.message.reply_text(
+                    f"🔐 Authenticating with Telegram...\n\n"
+                    f"Please wait...",
+                    parse_mode='Markdown'
+                )
+                
+                try:
+                    from pyrogram_auto_auth import PyrogramAuthenticator
+                    authenticator = PyrogramAuthenticator(self.db_path)
+                    
+                    # Authenticate with OTP
+                    success, message = await authenticator.authenticate_account_with_hash(
+                        account_id, phone, int(api_id), api_hash, otp_code, phone_code_hash
+                    )
+                    
+                    if success:
+                        del self.admin_state[user.id]
+                        await update.message.reply_text(
+                            f"✅ *AUTHENTICATION SUCCESSFUL!*\n\n"
+                            f"🎉 Account #{account_id} is now authenticated and ready!\n\n"
+                            f"*Phone:* +{phone}\n"
+                            f"*Status:* ✅ Authenticated\n\n"
+                            f"You can now:\n"
+                            f"• Activate/deactivate this bot\n"
+                            f"• Add custom knowledge for this bot\n"
+                            f"• Manage its behavior separately\n\n"
+                            f"Use the Pyrogram Manager to control it!",
+                            reply_markup=self.get_admin_keyboard(),
+                            parse_mode='Markdown'
+                        )
+                        logger.info(f"Admin {user.id} successfully authenticated Pyrogram account #{account_id}")
+                    else:
+                        await update.message.reply_text(
+                            f"❌ *Authentication Failed!*\n\n"
+                            f"Error: {message}\n\n"
+                            f"Please try adding the account again.",
+                            reply_markup=self.get_admin_keyboard(),
+                            parse_mode='Markdown'
+                        )
+                        del self.admin_state[user.id]
+                
+                except Exception as e:
+                    logger.error(f"Failed to authenticate: {e}")
+                    await update.message.reply_text(
+                        f"❌ Authentication error: {str(e)}\n\n"
+                        f"Please try again.",
+                        reply_markup=self.get_admin_keyboard()
+                    )
+                    if user.id in self.admin_state:
+                        del self.admin_state[user.id]
+                return
+            
+            elif state.startswith("waiting_account_knowledge_text:"):
+                account_id = int(state.split(":", 1)[1])
+                knowledge_text = user_message.strip()
+                
+                if len(knowledge_text) < 10:
+                    await update.message.reply_text(
+                        "❌ Knowledge text too short! Please send at least 10 characters.",
+                        parse_mode='Markdown'
+                    )
+                    return
+                
+                try:
+                    # Auto-generate title from first 50 chars of knowledge
+                    title = f"Knowledge {account_id}-{datetime.now().strftime('%H%M')}"
+                    knowledge_id = self.add_account_knowledge(account_id, title, knowledge_text)
+                    del self.admin_state[user.id]
+                    
+                    await update.message.reply_text(
+                        f"✅ *ACCOUNT KNOWLEDGE ADDED!*\n\n"
+                        f"*Knowledge ID:* #{knowledge_id}\n"
+                        f"*For Account:* ID #{account_id}\n\n"
+                        f"*Content:*\n{knowledge_text[:200]}{'...' if len(knowledge_text) > 200 else ''}\n\n"
+                        f"✅ This knowledge is now ACTIVE for this specific account!",
+                        reply_markup=self.get_admin_keyboard(),
+                        parse_mode='Markdown'
+                    )
+                    logger.info(f"Admin {user.id} added knowledge to account #{account_id}")
+                except Exception as e:
+                    logger.error(f"Failed to add account knowledge: {e}")
+                    await update.message.reply_text(
+                        f"❌ Failed to add knowledge: {str(e)}",
+                        reply_markup=self.get_admin_keyboard()
+                    )
+                    if user.id in self.admin_state:
+                        del self.admin_state[user.id]
+                return
+            
+            elif state.startswith("waiting_account_knowledge_delete:"):
+                account_id = int(state.split(":", 1)[1])
+                try:
+                    knowledge_id = int(user_message.strip())
+                    
+                    if self.delete_account_knowledge(knowledge_id):
+                        del self.admin_state[user.id]
+                        await update.message.reply_text(
+                            f"✅ *Knowledge Deleted!*\n\n"
+                            f"Knowledge #{knowledge_id} has been removed from account #{account_id}.",
+                            reply_markup=self.get_admin_keyboard(),
+                            parse_mode='Markdown'
+                        )
+                        logger.info(f"Admin {user.id} deleted knowledge #{knowledge_id} from account #{account_id}")
+                    else:
+                        await update.message.reply_text(
+                            "❌ Failed to delete knowledge! ID not found.",
+                            reply_markup=self.get_admin_keyboard()
+                        )
+                        del self.admin_state[user.id]
+                except ValueError:
+                    await update.message.reply_text(
+                        "❌ Please send a valid knowledge ID number!",
+                        parse_mode='Markdown'
+                    )
                 return
         
         if user.id in self.user_to_admin_chat:

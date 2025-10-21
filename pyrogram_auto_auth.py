@@ -106,6 +106,50 @@ class PyrogramAuthenticator:
         except Exception as e:
             logger.error(f"❌ Failed to send OTP: {e}")
             return False, str(e)
+    
+    async def authenticate_account_with_hash(self, account_id: int, phone: str, api_id: int, api_hash: str, code: str, phone_code_hash: str):
+        """Authenticate a Pyrogram account using provided OTP and phone_code_hash"""
+        try:
+            session_name = f"account_{account_id}_{phone}"
+            
+            app = Client(
+                session_name,
+                api_id=api_id,
+                api_hash=api_hash,
+                phone_number=f"+{phone}",
+                in_memory=True
+            )
+            
+            await app.connect()
+            
+            # Sign in with provided code and phone_code_hash
+            try:
+                signed_in = await app.sign_in(f"+{phone}", phone_code_hash, code)
+                logger.info(f"✅ Successfully authenticated +{phone}")
+            except SessionPasswordNeeded:
+                logger.error(f"❌ 2FA enabled for +{phone}. Please disable 2FA first!")
+                await app.disconnect()
+                return False, "2FA enabled. Please disable 2FA and try again."
+            except (PhoneCodeInvalid, PhoneCodeExpired) as e:
+                logger.error(f"❌ Invalid or expired code for +{phone}: {e}")
+                await app.disconnect()
+                return False, f"Invalid or expired OTP code: {str(e)}"
+            
+            # Export session string
+            session_string = await app.export_session_string()
+            
+            # Save to database
+            self.update_account_session(account_id, session_string, 1, None)
+            
+            await app.disconnect()
+            logger.info(f"✅ Session saved for account #{account_id}")
+            
+            return True, "Successfully authenticated and session saved!"
+        
+        except Exception as e:
+            logger.error(f"❌ Authentication failed: {e}")
+            self.update_account_session(account_id, None, 0, str(e))
+            return False, f"Authentication failed: {str(e)}"
 
 if __name__ == '__main__':
     print("Pyrogram Auto Authenticator")

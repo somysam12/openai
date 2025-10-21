@@ -23,11 +23,6 @@ logger = logging.getLogger(__name__)
 class MultiAccountManager:
     def __init__(self):
         self.db_path = 'chat_history.db'
-        self.api_id = int(os.getenv('TELEGRAM_API_ID', '0'))
-        self.api_hash = os.getenv('TELEGRAM_API_HASH', '')
-        
-        if self.api_id == 0 or not self.api_hash:
-            raise ValueError("Please set TELEGRAM_API_ID and TELEGRAM_API_HASH environment variables")
         
         # OpenAI Setup
         self.api_keys = []
@@ -57,11 +52,13 @@ class MultiAccountManager:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT id, phone_number, account_name, session_string
+            SELECT id, phone_number, account_name, session_string, api_id, api_hash
             FROM pyrogram_accounts
             WHERE is_authenticated = 1 
             AND is_active = 1
             AND session_string IS NOT NULL
+            AND api_id IS NOT NULL
+            AND api_hash IS NOT NULL
             ORDER BY id
         ''')
         accounts = cursor.fetchall()
@@ -75,10 +72,12 @@ class MultiAccountManager:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT id, phone_number, account_name, session_string, is_active
+            SELECT id, phone_number, account_name, session_string, is_active, api_id, api_hash
             FROM pyrogram_accounts
             WHERE is_authenticated = 1
             AND session_string IS NOT NULL
+            AND api_id IS NOT NULL
+            AND api_hash IS NOT NULL
             ORDER BY id
         ''')
         accounts = cursor.fetchall()
@@ -256,15 +255,20 @@ class MultiAccountManager:
         except Exception as e:
             logger.error(f"[{account_name}] Error handling message: {e}")
     
-    async def start_account(self, account_id: int, phone: str, account_name: str, session_string: str = None):
+    async def start_account(self, account_id: int, phone: str, account_name: str, session_string: str = None, api_id: int = None, api_hash: str = None):
         """Start a Pyrogram client for an account"""
         try:
+            if not api_id or not api_hash:
+                logger.error(f"❌ [{account_name}] Missing API credentials!")
+                self.update_account_status(account_id, 0, "Missing API credentials")
+                return False
+            
             session_name = f"account_{account_id}_{phone}"
             
             client = Client(
                 session_name,
-                api_id=self.api_id,
-                api_hash=self.api_hash,
+                api_id=int(api_id),
+                api_hash=api_hash,
                 session_string=session_string
             )
             
@@ -317,9 +321,9 @@ class MultiAccountManager:
         
         # Start all accounts
         tasks = []
-        for account_id, phone, account_name, session_string in accounts:
+        for account_id, phone, account_name, session_string, api_id, api_hash in accounts:
             logger.info(f"Starting {account_name} (+{phone})...")
-            task = self.start_account(account_id, phone, account_name, session_string)
+            task = self.start_account(account_id, phone, account_name, session_string, api_id, api_hash)
             tasks.append(task)
         
         # Wait for all to start
