@@ -2842,7 +2842,8 @@ class TelegramChatBot:
                             f"📩 You should have received a login code.\n\n"
                             f"*Send the OTP code here*\n"
                             f"*Example:* 12345\n\n"
-                            f"⚠️ Code expires in a few minutes!\n\n"
+                            f"⚠️ Code expires in ~2 minutes! Enter it quickly.\n"
+                            f"💡 If it expires, I'll automatically send you a new one.\n\n"
                             f"Send /cancel to cancel.",
                             parse_mode='Markdown'
                         )
@@ -2924,14 +2925,49 @@ class TelegramChatBot:
                         )
                         logger.info(f"Admin {user.id} successfully authenticated Pyrogram account #{account_id}")
                     else:
-                        await update.message.reply_text(
-                            f"❌ *Authentication Failed!*\n\n"
-                            f"Error: {message}\n\n"
-                            f"Please try adding the account again.",
-                            reply_markup=self.get_admin_keyboard(),
-                            parse_mode='Markdown'
-                        )
-                        del self.admin_state[user.id]
+                        # Check if code expired, if yes, automatically request a new code
+                        if "PHONE_CODE_EXPIRED" in message or "expired" in message.lower():
+                            await update.message.reply_text(
+                                f"⏰ *OTP Code Expired!*\n\n"
+                                f"Don't worry, I'm sending you a fresh code...",
+                                parse_mode='Markdown'
+                            )
+                            
+                            # Request a new code
+                            new_success, new_phone_code_hash = await authenticator.request_code_only(phone, int(api_id), api_hash)
+                            
+                            if new_success:
+                                # Update the state with new hash
+                                self.admin_state[user.id] = f"waiting_pyrogram_otp:{account_id}|||{phone}|||{api_id}|||{api_hash}|||{new_phone_code_hash}"
+                                await update.message.reply_text(
+                                    f"✅ *New OTP Code Sent!*\n\n"
+                                    f"📩 A fresh login code has been sent to +{phone}\n\n"
+                                    f"*Please send the NEW code here*\n"
+                                    f"*Example:* 12345\n\n"
+                                    f"⚠️ Please enter it quickly this time (expires in ~2 minutes)\n\n"
+                                    f"Send /cancel to cancel.",
+                                    parse_mode='Markdown'
+                                )
+                                logger.info(f"Resent OTP for account #{account_id} (+{phone}) after expiration")
+                            else:
+                                await update.message.reply_text(
+                                    f"❌ *Failed to resend OTP!*\n\n"
+                                    f"Error: {new_phone_code_hash}\n\n"
+                                    f"Please try adding the account again from the Pyrogram Manager.",
+                                    reply_markup=self.get_admin_keyboard(),
+                                    parse_mode='Markdown'
+                                )
+                                del self.admin_state[user.id]
+                        else:
+                            # Other errors (2FA, invalid code, etc.)
+                            await update.message.reply_text(
+                                f"❌ *Authentication Failed!*\n\n"
+                                f"Error: {message}\n\n"
+                                f"Please try adding the account again.",
+                                reply_markup=self.get_admin_keyboard(),
+                                parse_mode='Markdown'
+                            )
+                            del self.admin_state[user.id]
                 
                 except Exception as e:
                     logger.error(f"Failed to authenticate: {e}")

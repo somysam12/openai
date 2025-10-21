@@ -21,7 +21,7 @@ class PyrogramAuthenticator:
     def __init__(self, db_path='chat_history.db'):
         self.db_path = db_path
     
-    def update_account_session(self, account_id: int, session_string: str, is_authenticated: int = 1, error_message: str = None):
+    def update_account_session(self, account_id: int, session_string: str | None = None, is_authenticated: int = 1, error_message: str | None = None):
         """Update account with session string and auth status"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -36,7 +36,13 @@ class PyrogramAuthenticator:
         conn.close()
     
     async def authenticate_account(self, account_id: int, phone: str, api_id: int, api_hash: str, code: str):
-        """Authenticate a Pyrogram account using provided OTP"""
+        """
+        DEPRECATED: Use two-step authentication instead
+        Step 1: request_code_only() to send OTP
+        Step 2: authenticate_account_with_hash() to verify OTP (within 5 minutes)
+        
+        This method sends a NEW code each time, which can cause expiration issues
+        """
         try:
             session_name = f"account_{account_id}_{phone}"
             
@@ -53,6 +59,7 @@ class PyrogramAuthenticator:
             # Send code
             sent_code = await app.send_code(f"+{phone}")
             logger.info(f"✅ OTP code sent to +{phone}")
+            logger.warning(f"⚠️ You have 5 minutes to enter the code!")
             
             # Sign in with provided code
             try:
@@ -64,6 +71,7 @@ class PyrogramAuthenticator:
                 return False, "2FA enabled. Please disable 2FA and try again."
             except (PhoneCodeInvalid, PhoneCodeExpired) as e:
                 logger.error(f"❌ Invalid or expired code for +{phone}: {e}")
+                logger.info(f"💡 Tip: Use two-step auth - request_code_only() then authenticate_account_with_hash()")
                 await app.disconnect()
                 return False, f"Invalid or expired OTP code: {str(e)}"
             
