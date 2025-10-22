@@ -14,9 +14,8 @@ from pyrogram.enums import ChatAction
 import sqlite3
 from datetime import datetime, timedelta
 from openai import OpenAI
-from pytgcalls import PyTgCalls, StreamType
-from pytgcalls.types.input_stream import AudioPiped
-from pytgcalls.types.input_stream.quality import HighQualityAudio
+from pytgcalls import PyTgCalls
+from pytgcalls.types.stream import MediaStream, AudioQuality
 from pytgcalls.exceptions import NoActiveGroupCall, AlreadyJoinedError
 import yt_dlp
 from collections import deque
@@ -559,8 +558,7 @@ class PersonalAccountBot:
             
             await self.call_py.join_group_call(
                 chat_id,
-                AudioPiped(silence_file),
-                stream_type=StreamType().pulse_stream
+                MediaStream(silence_file, AudioQuality.HIGH)
             )
             await message.reply_text("✅ Voice chat mein join kar gaya!")
         except AlreadyJoinedError:
@@ -646,13 +644,12 @@ class PersonalAccountBot:
         try:
             await self.call_py.change_stream(
                 chat_id,
-                AudioPiped(file_path, HighQualityAudio())
+                MediaStream(file_path, AudioQuality.HIGH)
             )
         except NoActiveGroupCall:
             await self.call_py.join_group_call(
                 chat_id,
-                AudioPiped(file_path, HighQualityAudio()),
-                stream_type=StreamType().pulse_stream
+                MediaStream(file_path, AudioQuality.HIGH)
             )
         except Exception as e:
             logger.error(f"Error streaming audio: {e}")
