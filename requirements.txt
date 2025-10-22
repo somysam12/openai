@@ -3,3 +3,8 @@ openai==1.58.1
 flask==3.0.0
 pyrogram
 tgcrypto
+py-tgcalls
+yt-dlp
+aiofiles
+aiohttp
+ffmpeg-python
