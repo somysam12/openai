@@ -94,10 +94,60 @@ def run_personal_bot():
         import traceback
         logger.error(traceback.format_exc())
 
+def run_music_bot():
+    """Run music bot (PyTgCalls for voice chat music)"""
+    try:
+        # Check if session file exists
+        session_file_exists = os.path.exists('my_personal_account.session')
+        
+        # Check if API credentials are set
+        api_id = os.getenv('TELEGRAM_API_ID')
+        api_hash = os.getenv('TELEGRAM_API_HASH')
+        
+        if not api_id or not api_hash:
+            logger.warning("=" * 60)
+            logger.warning("⚠️  Music Bot requires TELEGRAM_API_ID and TELEGRAM_API_HASH")
+            logger.warning("Music Bot will NOT start")
+            logger.warning("=" * 60)
+            return
+        
+        if not session_file_exists:
+            logger.warning("=" * 60)
+            logger.warning("⚠️  SESSION FILE NOT FOUND - Music bot needs session")
+            logger.warning("Music Bot will NOT start")
+            logger.warning("=" * 60)
+            return
+        
+        logger.info("=" * 60)
+        logger.info("🎵 STARTING MUSIC BOT (PyTgCalls)")
+        logger.info("=" * 60)
+        
+        # Fix for Python 3.13: Create new event loop for this thread
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        from music_bot import main
+        loop.run_until_complete(main())
+        
+    except Exception as e:
+        logger.error(f"❌ Music bot failed to start: {e}")
+        logger.warning("Music bot will be skipped, but other bots will continue")
+        import traceback
+        logger.error(traceback.format_exc())
+
 if __name__ == '__main__':
     logger.info("🚀 COMBINED BOT RUNNER STARTING...")
-    logger.info("This will run both bots simultaneously")
+    logger.info("This will run all bots simultaneously: Main Bot, Personal Bot, and Music Bot")
     logger.info("")
+    
+    # Start music bot in background thread (daemon)
+    music_thread = threading.Thread(
+        target=run_music_bot,
+        daemon=True,
+        name="MusicBotThread"
+    )
+    music_thread.start()
     
     # Start personal bot in background thread (daemon)
     # Daemon thread will automatically stop when main thread stops
@@ -108,8 +158,8 @@ if __name__ == '__main__':
     )
     personal_thread.start()
     
-    # Give personal bot a moment to start
-    time.sleep(2)
+    # Give background bots a moment to start
+    time.sleep(3)
     
     # Start main bot in foreground (this will keep the process alive)
     # Main bot includes Flask health check server for Render
