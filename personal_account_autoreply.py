@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 from openai import OpenAI
 from pytgcalls import PyTgCalls
 from pytgcalls.types.stream import MediaStream, AudioQuality
-from pytgcalls.exceptions import NoActiveGroupCall, AlreadyJoinedError
+from pytgcalls.exceptions import NoActiveGroupCall
 import yt_dlp
 from collections import deque
 import re
@@ -561,9 +561,10 @@ class PersonalAccountBot:
                 MediaStream(silence_file, AudioQuality.HIGH)
             )
             await message.reply_text("✅ Voice chat mein join kar gaya!")
-        except AlreadyJoinedError:
-            await message.reply_text("⚠️ Main pehle se hi voice chat mein hoon!")
         except Exception as e:
+            if "already" in str(e).lower() or "joined" in str(e).lower():
+                await message.reply_text("⚠️ Main pehle se hi voice chat mein hoon!")
+                return
             logger.error(f"Error joining voice chat: {e}")
             await message.reply_text(f"❌ Voice chat join nahi kar paya: {str(e)}")
     

@@ -2,16 +2,27 @@
 
 ## 🔧 Errors Fixed:
 
-### 1. ✅ **Import Error - FIXED!**
-**Error:** `cannot import name 'StreamType' from 'pytgcalls'`
+### 1. ✅ **Import Errors - ALL FIXED!**
+
+#### Error 1: `cannot import name 'StreamType' from 'pytgcalls'`
+#### Error 2: `cannot import name 'AlreadyJoinedError' from 'pytgcalls.exceptions'`
 
 **Problem:** Code purani py-tgcalls API use kar raha tha (version 1.x), but installed library naya hai (version 2.2.8)
 
-**Solution:** ✅ Updated code to new API:
-- ❌ Old: `from pytgcalls import StreamType, AudioPiped, HighQualityAudio`
-- ✅ New: `from pytgcalls.types.stream import MediaStream, AudioQuality`
+**Solutions Applied:** ✅
+1. ❌ Old: `from pytgcalls import StreamType`
+   ✅ New: Removed (not needed)
 
-**Status:** ✅ **FIXED** - Code updated successfully!
+2. ❌ Old: `from pytgcalls.types.input_stream import AudioPiped, HighQualityAudio`
+   ✅ New: `from pytgcalls.types.stream import MediaStream, AudioQuality`
+
+3. ❌ Old: `from pytgcalls.exceptions import AlreadyJoinedError`
+   ✅ New: Removed (using generic exception handling)
+
+4. ❌ Old: `AudioPiped(file_path, HighQualityAudio())`
+   ✅ New: `MediaStream(file_path, AudioQuality.HIGH)`
+
+**Status:** ✅ **ALL FIXED** - Code fully updated to py-tgcalls v2.2.8!
 
 ---
 
