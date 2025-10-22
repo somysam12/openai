@@ -1,6 +1,6 @@
 # Overview
 
-This project is a Telegram AI chatbot designed for multilingual conversational AI, offering persistence of conversation history and administrative features for user management. It supports interactions in Hindi, English, and Hinglish, aiming for a friendly and engaging user experience. The application features a dual deployment architecture: a Python-based bot utilizing `python-telegram-bot` and OpenAI's API (deployable to Render.com), and a Node.js/TypeScript implementation built with the Mastra framework and Inngest for advanced agent capabilities and web chat interfaces. Key capabilities include real-time token usage tracking with an admin dashboard, comprehensive API key rotation, automated message management, live group messaging sessions for administrators, **Super Knowledge Management System**, and **Multi-Account Pyrogram DM Bot Manager**.
+This project is a Telegram AI chatbot designed for multilingual conversational AI, offering persistence of conversation history and administrative features for user management. It supports interactions in Hindi, English, and Hinglish, aiming for a friendly and engaging user experience. The application features a dual deployment architecture: a Python-based bot utilizing `python-telegram-bot` and OpenAI's API (deployable to Render.com), and a Node.js/TypeScript implementation built with the Mastra framework and Inngest for advanced agent capabilities and web chat interfaces. Key capabilities include real-time token usage tracking with an admin dashboard, comprehensive API key rotation, automated message management, live group messaging sessions for administrators, **Super Knowledge Management System**, **Multi-Account Pyrogram DM Bot Manager**, and **Music Bot for Voice Chat Streaming**.
 
 # User Preferences
 
@@ -34,6 +34,16 @@ The system employs a dual architecture to support both traditional bot deploymen
 -   **Lifecycle Management**: Admin controls (activate/deactivate/delete) update database flags; runner queries flags on startup to determine which accounts to run.
 -   **Error Tracking**: Authentication failures, session errors, and API issues stored in database and displayed in admin UI.
 
+## Music Bot Architecture (Voice Chat Streaming)
+
+-   **Framework**: PyTgCalls library with Pyrogram for Telegram MTProto integration, enabling music playback in group voice chats.
+-   **Audio Processing**: yt-dlp for YouTube search and audio extraction, FFmpeg for audio format conversion to high-quality MP3.
+-   **Queue Management**: In-memory queue system supporting multiple concurrent groups, automatic next-song playback, and queue persistence per chat.
+-   **Commands**: `/play` (search/stream), `/pause`, `/resume`, `/skip`, `/stop`, `/queue`, `/join`, `/leave` for comprehensive playback control.
+-   **Session Sharing**: Uses same Pyrogram session file (`my_personal_account.session`) as personal bot for authentication.
+-   **Multi-Process**: Runs in separate thread via `start_both_bots.py`, gracefully handles errors without affecting main bot.
+-   **Storage**: Downloaded songs cached in `downloads/` directory to avoid re-downloading frequently requested tracks.
+
 ## TypeScript/Mastra Implementation (Advanced)
 
 -   **Framework Architecture**: Mastra framework (`@mastra/core`) for agent orchestration, with Inngest handling event-driven workflow execution.
@@ -47,13 +57,16 @@ The system employs a dual architecture to support both traditional bot deploymen
 ## Deployment Strategy
 
 -   **Render.com Deployment (Python)**: Configured as a Web Service with `pip install -r requirements.txt` and `python start_both_bots.py` as start commands. Compatible with Render's free tier.
--   **Multi-Process Architecture**: `start_both_bots.py` runs main bot and multi-account manager in separate threads. Multi-account manager only starts if `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` are set.
+-   **Multi-Process Architecture**: `start_both_bots.py` runs main bot, multi-account manager, and music bot in separate threads. Music bot only starts if `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, and session file are present.
 -   **Environment Variables**: Uses `TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`, `ADMIN_ID`, `DATABASE_URL`, `OPENAI_BASE_URL`, `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, and `NODE_ENV` for configuration.
 
 # External Dependencies
 
 -   **Telegram**: `python-telegram-bot` library (v21.0.1) and Telegram Bot API for bot interaction.
--   **Pyrogram**: User account automation library for multi-account DM management.
+-   **Pyrogram**: User account automation library for multi-account DM management and music bot authentication.
+-   **PyTgCalls**: Telegram voice chat streaming library (py-tgcalls v2.2.8) for music playback in group calls.
+-   **yt-dlp**: YouTube download library for searching and extracting audio from YouTube.
+-   **FFmpeg**: Audio/video processing tool for format conversion (system dependency).
 -   **OpenAI**: OpenAI API for AI capabilities (GPT-4 or compatible models).
 -   **Render.com**: Deployment platform for the Python application.
 -   **Inngest**: Event-driven workflow engine for the TypeScript application.
@@ -62,9 +75,19 @@ The system employs a dual architecture to support both traditional bot deploymen
 -   **LibSQL**: Alternative database support for the TypeScript application (via `@mastra/libsql`).
 -   **Mastra Framework**: `@mastra/core`, `@mastra/pg`, `@mastra/memory` for the TypeScript implementation.
 
-# Recent Changes (October 20, 2025)
+# Recent Changes
 
-## Super Knowledge Management System
+## Music Bot Feature (October 22, 2025)
+- Added complete music playback system for Telegram voice chats
+- Implemented PyTgCalls integration with Pyrogram session sharing
+- YouTube search and streaming via yt-dlp with MP3 conversion
+- Queue management system supporting multiple concurrent groups
+- Eight playback commands: play, pause, resume, skip, stop, queue, join, leave
+- Automatic voice chat join/leave with graceful error handling
+- Documentation in `MUSIC_BOT_GUIDE.md` with Hindi/Hinglish instructions
+- Integrated into `start_both_bots.py` for unified deployment
+
+## Super Knowledge Management System (October 20, 2025)
 - Added priority-based knowledge system with `priority='super'` flag
 - Implemented scope targeting: `main_only`, `dm_only`, or `both`
 - **Changed to text-based scope selection**: Users type "main", "dm", or "both" instead of clicking buttons to prevent message bypassing

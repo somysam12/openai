@@ -27,12 +27,12 @@ class MusicBot:
         if not self.api_id or not self.api_hash:
             raise ValueError("TELEGRAM_API_ID and TELEGRAM_API_HASH must be set!")
         
-        # Initialize Pyrogram client
+        # Initialize Pyrogram client using shared session file
+        # Uses same session as personal bot: my_personal_account.session
         self.app = Client(
-            "music_session",
+            "my_personal_account",
             api_id=int(self.api_id),
-            api_hash=self.api_hash,
-            session_string=os.getenv('SESSION_STRING')
+            api_hash=self.api_hash
         )
         
         # Initialize PyTgCalls
@@ -138,9 +138,21 @@ class MusicBot:
         chat_id = message.chat.id
         
         try:
+            # Create a silent audio file if it doesn't exist
+            silence_file = 'downloads/silence.mp3'
+            if not os.path.exists(silence_file):
+                os.makedirs('downloads', exist_ok=True)
+                # Create 1 second of silence using ffmpeg
+                import subprocess
+                subprocess.run([
+                    'ffmpeg', '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo',
+                    '-t', '1', '-q:a', '9', '-acodec', 'libmp3lame', silence_file,
+                    '-y'
+                ], check=True, capture_output=True)
+            
             await self.call_py.join_group_call(
                 chat_id,
-                AudioPiped('helper.mp3'),  # Dummy audio
+                AudioPiped(silence_file),
                 stream_type=StreamType().pulse_stream
             )
             await message.reply_text("✅ Voice chat mein join kar gaya!")
