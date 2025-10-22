@@ -34,15 +34,18 @@ The system employs a dual architecture to support both traditional bot deploymen
 -   **Lifecycle Management**: Admin controls (activate/deactivate/delete) update database flags; runner queries flags on startup to determine which accounts to run.
 -   **Error Tracking**: Authentication failures, session errors, and API issues stored in database and displayed in admin UI.
 
-## Music Bot Architecture (Voice Chat Streaming)
+## Music Bot Architecture (Voice Chat Streaming) - INTEGRATED INTO PERSONAL BOT
 
 -   **Framework**: PyTgCalls library with Pyrogram for Telegram MTProto integration, enabling music playback in group voice chats.
+-   **Integration**: Music playback now fully integrated into `personal_account_autoreply.py` - no standalone music bot needed.
 -   **Audio Processing**: yt-dlp for YouTube search and audio extraction, FFmpeg for audio format conversion to high-quality MP3.
 -   **Queue Management**: In-memory queue system supporting multiple concurrent groups, automatic next-song playback, and queue persistence per chat.
--   **Commands**: `/play` (search/stream), `/pause`, `/resume`, `/skip`, `/stop`, `/queue`, `/join`, `/leave` for comprehensive playback control.
--   **Session Sharing**: Uses same Pyrogram session file (`my_personal_account.session`) as personal bot for authentication.
--   **Multi-Process**: Runs in separate thread via `start_both_bots.py`, gracefully handles errors without affecting main bot.
+-   **Slash Commands**: `/play` (search/stream), `/pause`, `/resume`, `/skip`, `/stop`, `/queue`, `/join`, `/leave` for comprehensive playback control in groups.
+-   **Natural Language Support**: Mention detection for plain text requests - `@username play Kesariya` - supports keywords: play, bajao, chalao, song, gaana, music.
+-   **Session Sharing**: Uses same Pyrogram session file (`my_personal_account.session`) as DM auto-reply for authentication.
+-   **Single Process**: Runs within personal bot thread in `start_both_bots.py`, gracefully handles errors without affecting main bot or DM features.
 -   **Storage**: Downloaded songs cached in `downloads/` directory to avoid re-downloading frequently requested tracks.
+-   **Stream Callbacks**: Automatic next-song playback via `on_stream_end()` callback when current song finishes.
 
 ## TypeScript/Mastra Implementation (Advanced)
 
@@ -77,15 +80,17 @@ The system employs a dual architecture to support both traditional bot deploymen
 
 # Recent Changes
 
-## Music Bot Feature (October 22, 2025)
-- Added complete music playback system for Telegram voice chats
-- Implemented PyTgCalls integration with Pyrogram session sharing
-- YouTube search and streaming via yt-dlp with MP3 conversion
-- Queue management system supporting multiple concurrent groups
-- Eight playback commands: play, pause, resume, skip, stop, queue, join, leave
-- Automatic voice chat join/leave with graceful error handling
-- Documentation in `MUSIC_BOT_GUIDE.md` with Hindi/Hinglish instructions
-- Integrated into `start_both_bots.py` for unified deployment
+## Music Bot Integration into Personal Bot (October 22, 2025)
+- **Integrated PyTgCalls music playback into `personal_account_autoreply.py`**
+- Personal bot now handles both DM auto-replies AND group voice chat music
+- Added 8 slash commands: `/play`, `/pause`, `/resume`, `/skip`, `/stop`, `/queue`, `/join`, `/leave`
+- **NEW:** Natural language mention support - tag bot and say "play <song>" in plain text
+- Supports keywords: play, bajao, chalao, song, gaana, music (Hindi + English)
+- Queue management with automatic next-song playback via `on_stream_end` callback
+- YouTube search/download via yt-dlp with FFmpeg MP3 conversion
+- Disabled standalone `music_bot.py` thread to avoid session conflicts
+- Single Pyrogram session shared between DM and music features
+- Updated `MUSIC_BOT_GUIDE.md` with integration details and mention examples
 
 ## Super Knowledge Management System (October 20, 2025)
 - Added priority-based knowledge system with `priority='super'` flag

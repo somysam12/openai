@@ -1,5 +1,15 @@
 # 🎵 Music Bot Guide - Voice Chat Music Player
 
+## 🎉 **UPDATED: Music Now Integrated into Personal Bot!**
+
+Music playback ab **Personal Account Bot** (`personal_account_autoreply.py`) mein integrate ho gaya hai! Ab alag se music bot run karne ki zarurat nahi hai.
+
+### What Changed?
+- ✅ Music features ab personal bot mein built-in hain
+- ✅ Slash commands `/play`, `/pause`, etc. kaam karte hain
+- ✅ **NEW:** Natural language support - Tag karke bolo: `@username play Kesariya`
+- ✅ Ek hi session file, ek hi bot, sabkuch automated
+
 ## Overview
 Aapke bot mein ab music playing feature add ho gaya hai! Ye bot Telegram group voice chats mein songs play kar sakta hai YouTube se search karke.
 
@@ -9,6 +19,8 @@ Aapke bot mein ab music playing feature add ho gaya hai! Ye bot Telegram group v
 - ✅ Pause, resume, skip controls
 - ✅ Voice chat mein automatic join/leave
 - ✅ Real-time song playing status
+- ✅ **NEW:** Natural language mentions support
+- ✅ **NEW:** Tag bot + say "play <song>" in plain text
 
 ---
 
@@ -73,7 +85,37 @@ Current song skip karke next song play karta hai.
 Music band kar deta hai aur puri queue clear kar deta hai.
 
 #### `/queue`
-Current playing song aur upcoming queue dikhata hai.
+Current queue dikhata hai (jo songs play hone wale hain).
+
+---
+
+### 🎤 Natural Language Mentions (NEW!)
+
+Ab aap bot ko tag karke plain text mein bhi song request kar sakte ho!
+
+**Format:**
+```
+@username play <song name>
+@username bajao <song name>
+@username chalao <song name>
+```
+
+**Examples:**
+```
+@YourBotUsername play Kesariya
+@YourBotUsername bajao last christmas
+Hey @YourBotUsername chalao Arijit Singh songs
+@YourBotUsername song play karo tum hi ho
+```
+
+**Supported Keywords:**
+- play, bajao, chalao, song, gaana, music
+
+Bot automatically detect karega keywords aur song name extract karega!
+
+---
+
+### Voice Chat Controls
 
 #### `/join`
 Bot ko voice chat mein join karata hai.
