@@ -1,0 +1,323 @@
+==> Downloading cache...
+==> Cloning from https://github.com/somysam12/openai
+==> Checking out commit 012abcb07de8864d687e3bc747f32d5d2f0f7da0 in branch main
+==> Transferred 83MB in 7s. Extraction took 2s.
+==> Installing Python version 3.13.4...
+==> Using Python version 3.13.4 (default)
+==> Docs on specifying a Python version: https://render.com/docs/python-version
+==> Using Poetry version 2.1.3 (default)
+==> Docs on specifying a Poetry version: https://render.com/docs/poetry-version
+==> Running build command 'pip install -r requirements.txt'...
+Collecting python-telegram-bot==21.0.1 (from -r requirements.txt (line 1))
+  Using cached python_telegram_bot-21.0.1-py3-none-any.whl.metadata (15 kB)
+Collecting openai==1.58.1 (from -r requirements.txt (line 2))
+  Using cached openai-1.58.1-py3-none-any.whl.metadata (27 kB)
+Collecting flask==3.0.0 (from -r requirements.txt (line 3))
+  Using cached flask-3.0.0-py3-none-any.whl.metadata (3.6 kB)
+Collecting pyrogram (from -r requirements.txt (line 4))
+  Using cached Pyrogram-2.0.106-py3-none-any.whl.metadata (4.4 kB)
+Collecting tgcrypto (from -r requirements.txt (line 5))
+  Using cached tgcrypto-1.2.5-cp313-cp313-linux_x86_64.whl
+Collecting httpx~=0.27 (from python-telegram-bot==21.0.1->-r requirements.txt (line 1))
+  Using cached httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+Collecting anyio<5,>=3.5.0 (from openai==1.58.1->-r requirements.txt (line 2))
+  Using cached anyio-4.11.0-py3-none-any.whl.metadata (4.1 kB)
+Collecting distro<2,>=1.7.0 (from openai==1.58.1->-r requirements.txt (line 2))
+  Using cached distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
+Collecting jiter<1,>=0.4.0 (from openai==1.58.1->-r requirements.txt (line 2))
+  Using cached jiter-0.11.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (5.2 kB)
+Collecting pydantic<3,>=1.9.0 (from openai==1.58.1->-r requirements.txt (line 2))
+  Using cached pydantic-2.12.3-py3-none-any.whl.metadata (87 kB)
+Collecting sniffio (from openai==1.58.1->-r requirements.txt (line 2))
+  Using cached sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+Collecting tqdm>4 (from openai==1.58.1->-r requirements.txt (line 2))
+  Using cached tqdm-4.67.1-py3-none-any.whl.metadata (57 kB)
+Collecting typing-extensions<5,>=4.11 (from openai==1.58.1->-r requirements.txt (line 2))
+  Using cached typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting Werkzeug>=3.0.0 (from flask==3.0.0->-r requirements.txt (line 3))
+  Using cached werkzeug-3.1.3-py3-none-any.whl.metadata (3.7 kB)
+Collecting Jinja2>=3.1.2 (from flask==3.0.0->-r requirements.txt (line 3))
+  Using cached jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+Collecting itsdangerous>=2.1.2 (from flask==3.0.0->-r requirements.txt (line 3))
+  Using cached itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+Collecting click>=8.1.3 (from flask==3.0.0->-r requirements.txt (line 3))
+  Using cached click-8.3.0-py3-none-any.whl.metadata (2.6 kB)
+Collecting blinker>=1.6.2 (from flask==3.0.0->-r requirements.txt (line 3))
+  Using cached blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+Collecting idna>=2.8 (from anyio<5,>=3.5.0->openai==1.58.1->-r requirements.txt (line 2))
+  Using cached idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+Collecting certifi (from httpx~=0.27->python-telegram-bot==21.0.1->-r requirements.txt (line 1))
+  Using cached certifi-2025.10.5-py3-none-any.whl.metadata (2.5 kB)
+Collecting httpcore==1.* (from httpx~=0.27->python-telegram-bot==21.0.1->-r requirements.txt (line 1))
+  Using cached httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+Collecting h11>=0.16 (from httpcore==1.*->httpx~=0.27->python-telegram-bot==21.0.1->-r requirements.txt (line 1))
+  Using cached h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+Collecting annotated-types>=0.6.0 (from pydantic<3,>=1.9.0->openai==1.58.1->-r requirements.txt (line 2))
+  Using cached annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.41.4 (from pydantic<3,>=1.9.0->openai==1.58.1->-r requirements.txt (line 2))
+  Using cached pydantic_core-2.41.4-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.3 kB)
+Collecting typing-inspection>=0.4.2 (from pydantic<3,>=1.9.0->openai==1.58.1->-r requirements.txt (line 2))
+  Using cached typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+Collecting pyaes==1.6.1 (from pyrogram->-r requirements.txt (line 4))
+  Using cached pyaes-1.6.1-py3-none-any.whl
+Collecting pysocks==1.7.1 (from pyrogram->-r requirements.txt (line 4))
+  Using cached PySocks-1.7.1-py3-none-any.whl.metadata (13 kB)
+Collecting MarkupSafe>=2.0 (from Jinja2>=3.1.2->flask==3.0.0->-r requirements.txt (line 3))
+  Using cached markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+Using cached python_telegram_bot-21.0.1-py3-none-any.whl (604 kB)
+Using cached openai-1.58.1-py3-none-any.whl (454 kB)
+Using cached flask-3.0.0-py3-none-any.whl (99 kB)
+Using cached anyio-4.11.0-py3-none-any.whl (109 kB)
+Using cached distro-1.9.0-py3-none-any.whl (20 kB)
+Using cached httpx-0.28.1-py3-none-any.whl (73 kB)
+Using cached httpcore-1.0.9-py3-none-any.whl (78 kB)
+Using cached jiter-0.11.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (356 kB)
+Using cached pydantic-2.12.3-py3-none-any.whl (462 kB)
+Using cached pydantic_core-2.41.4-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+Using cached typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+Using cached Pyrogram-2.0.106-py3-none-any.whl (3.6 MB)
+Using cached PySocks-1.7.1-py3-none-any.whl (16 kB)
+Using cached annotated_types-0.7.0-py3-none-any.whl (13 kB)
+Using cached blinker-1.9.0-py3-none-any.whl (8.5 kB)
+Using cached click-8.3.0-py3-none-any.whl (107 kB)
+Using cached h11-0.16.0-py3-none-any.whl (37 kB)
+Using cached idna-3.11-py3-none-any.whl (71 kB)
+Using cached itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+Using cached jinja2-3.1.6-py3-none-any.whl (134 kB)
+Using cached markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+Using cached sniffio-1.3.1-py3-none-any.whl (10 kB)
+Using cached tqdm-4.67.1-py3-none-any.whl (78 kB)
+Using cached typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+Using cached werkzeug-3.1.3-py3-none-any.whl (224 kB)
+Using cached certifi-2025.10.5-py3-none-any.whl (163 kB)
+Installing collected packages: pyaes, typing-extensions, tqdm, tgcrypto, sniffio, pysocks, MarkupSafe, jiter, itsdangerous, idna, h11, distro, click, certifi, blinker, annotated-types, Werkzeug, typing-inspection, pyrogram, pydantic-core, Jinja2, httpcore, anyio, pydantic, httpx, flask, python-telegram-bot, openai
+Successfully installed Jinja2-3.1.6 MarkupSafe-3.0.3 Werkzeug-3.1.3 annotated-types-0.7.0 anyio-4.11.0 blinker-1.9.0 certifi-2025.10.5 click-8.3.0 distro-1.9.0 flask-3.0.0 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 idna-3.11 itsdangerous-2.2.0 jiter-0.11.1 openai-1.58.1 pyaes-1.6.1 pydantic-2.12.3 pydantic-core-2.41.4 pyrogram-2.0.106 pysocks-1.7.1 python-telegram-bot-21.0.1 sniffio-1.3.1 tgcrypto-1.2.5 tqdm-4.67.1 typing-extensions-4.15.0 typing-inspection-0.4.2
+[notice] A new release of pip is available: 25.1.1 -> 25.2
+[notice] To update, run: pip install --upgrade pip
+==> Requesting Node.js version >=20.9.0
+==> Using Node.js version 25.0.0 via /opt/render/project/src/package.json
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Uploading build...
+==> Uploaded in 11.6s. Compression took 3.9s
+==> Build successful 🎉
+==> Deploying...
+==> Running 'python start_both_bots.py'
+2025-10-22 07:11:39,444 - __main__ - INFO - 🚀 COMBINED BOT RUNNER STARTING...
+2025-10-22 07:11:39,444 - __main__ - INFO - This will run both bots simultaneously
+2025-10-22 07:11:39,444 - __main__ - INFO - 
+2025-10-22 07:11:39,444 - __main__ - INFO - ============================================================
+2025-10-22 07:11:39,444 - __main__ - INFO - 👤 STARTING PERSONAL ACCOUNT BOT (Pyrogram)
+2025-10-22 07:11:39,444 - __main__ - INFO - ============================================================
+2025-10-22 07:11:41,444 - __main__ - INFO - ============================================================
+2025-10-22 07:11:41,445 - __main__ - INFO - 🤖 STARTING MAIN TELEGRAM BOT (Bot API)
+2025-10-22 07:11:41,445 - __main__ - INFO - ============================================================
+2025-10-22 07:11:56,034 - pyrogram.crypto.aes - INFO - Using TgCrypto
+2025-10-22 07:11:58,743 - __main__ - INFO - ✅ Flask health check server started on port 10000
+2025-10-22 07:11:58,743 - main - INFO - ✅ Loaded 17 API keys for rotation
+ * Serving Flask app 'main'
+ * Debug mode: off
+2025-10-22 07:12:00,943 - main - INFO - Database initialized successfully
+2025-10-22 07:12:00,943 - __main__ - INFO - ✅ Main bot initialized successfully
+2025-10-22 07:12:00,943 - main - INFO - Starting Telegram bot...
+2025-10-22 07:12:01,135 - personal_account_autoreply - INFO - ✅ Loaded 17 API keys for rotation
+2025-10-22 07:12:01,232 - personal_account_autoreply - INFO - Database initialized for personal account bot
+2025-10-22 07:12:01,233 - personal_account_autoreply - INFO - Personal Account Bot initialized:
+2025-10-22 07:12:01,233 - personal_account_autoreply - INFO -   - AI Responses: ✅
+2025-10-22 07:12:01,233 - personal_account_autoreply - INFO -   - Keywords: ✅
+2025-10-22 07:12:01,233 - personal_account_autoreply - INFO -   - Knowledge Base: ✅
+2025-10-22 07:12:01,233 - personal_account_autoreply - INFO -   - Cooldown: 0 hours (0 = disabled)
+2025-10-22 07:12:01,233 - __main__ - INFO - ✅ Personal bot initialized successfully
+2025-10-22 07:12:01,233 - personal_account_autoreply - INFO - Starting Personal Account Auto-Reply Bot...
+2025-10-22 07:12:01,233 - personal_account_autoreply - INFO - Bot is running and monitoring your personal DMs...
+2025-10-22 07:12:01,233 - personal_account_autoreply - INFO - Auto-reply message: Namaste! Main abhi busy hoon. Aap ka message dekha hai, jald hi reply karunga. 🙏...
+2025-10-22 07:12:01,233 - personal_account_autoreply - INFO - Cooldown period: 0 hours per user
+2025-10-22 07:12:01,836 - main - INFO - Bot is ready and polling for messages...
+2025-10-22 07:12:01,836 - main - INFO - 🔑 Using API key rotation system with 17 keys
+2025-10-22 07:12:02,533 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getMe "HTTP/1.1 200 OK"
+2025-10-22 07:12:02,732 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/deleteWebhook "HTTP/1.1 200 OK"
+2025-10-22 07:12:02,734 - telegram.ext.Application - INFO - Application started
+2025-10-22 07:12:03,940 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-22 07:12:03,944 - pyrogram.connection.connection - INFO - Connected! Production DC5 - IPv4
+2025-10-22 07:12:03,945 - pyrogram.session.session - INFO - NetworkTask started
+2025-10-22 07:12:04,021 - pyrogram.session.session - INFO - Session initialized: Layer 158
+2025-10-22 07:12:04,021 - pyrogram.session.session - INFO - Device: CPython 3.13.4 - Pyrogram 2.0.106
+2025-10-22 07:12:04,021 - pyrogram.session.session - INFO - System: Linux 6.8.0-1035-aws (en)
+2025-10-22 07:12:04,021 - pyrogram.session.session - INFO - Session started
+2025-10-22 07:12:04,033 - pyrogram.session.session - INFO - PingTask started
+2025-10-22 07:12:04,077 - pyrogram.dispatcher - INFO - Started 12 HandlerTasks
+2025-10-22 07:12:04,077 - personal_account_autoreply - INFO - ✅ Personal account bot started successfully!
+2025-10-22 07:12:07,508 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-22 07:12:07,509 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:07,509 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+==> Your service is live 🎉
+==> 
+==> ///////////////////////////////////////////////////////////
+==> 
+==> Available at your primary URL https://telegram-ai-bot-chatbot.onrender.com
+==> 
+==> ///////////////////////////////////////////////////////////
+2025-10-22 07:12:13,387 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-22 07:12:13,388 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:13,388 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:20,517 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-22 07:12:20,518 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:20,518 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:27,143 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-22 07:12:27,144 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:27,144 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:31,257 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:12:32,012 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/answerCallbackQuery "HTTP/1.1 200 OK"
+2025-10-22 07:12:32,407 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/editMessageText "HTTP/1.1 200 OK"
+2025-10-22 07:12:34,896 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-22 07:12:34,896 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:34,896 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:40,272 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-22 07:12:40,272 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:40,272 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:42,374 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:12:42,386 - main - INFO - Received message from 5952524867 (Tgshaitaan): dd899a75e335d7f630e0dc8b4d11b7c7
+2025-10-22 07:12:43,159 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendChatAction "HTTP/1.1 200 OK"
+2025-10-22 07:12:43,544 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-10-22 07:12:43,545 - main - WARNING - ⚠️ API key #1 - Account deactivated (401)
+2025-10-22 07:12:43,555 - main - WARNING - 🔴 API key #1 marked as deactivated: account_deactivated
+2025-10-22 07:12:43,747 - main - WARNING - 🔄 Rotated to API key #2 (out of 17 keys)
+2025-10-22 07:12:43,747 - main - INFO - 🔄 Rotating due to account_deactivated. Retrying with API key #2...
+2025-10-22 07:12:45,511 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-22 07:12:45,534 - main - INFO - ✅ API call successful. Tokens: 184 in + 51 out = 235 total
+2025-10-22 07:12:45,965 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:12:45,966 - main - INFO - Sent AI response to 5952524867
+2025-10-22 07:12:46,157 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-22 07:12:46,157 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:46,157 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:52,033 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-22 07:12:52,033 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:52,034 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:59,160 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-22 07:12:59,161 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:12:59,162 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:13:05,787 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 409 Conflict"
+2025-10-22 07:13:05,787 - telegram.ext.Updater - ERROR - Error while getting Updates: Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:13:05,788 - main - ERROR - Update None caused error Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-10-22 07:13:11,353 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:13:11,359 - main - INFO - Received message from 5952524867 (Tgshaitaan): ShaitaanAi
+2025-10-22 07:13:12,203 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendChatAction "HTTP/1.1 200 OK"
+2025-10-22 07:13:14,493 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-22 07:13:14,502 - main - INFO - ✅ API call successful. Tokens: 247 in + 58 out = 305 total
+2025-10-22 07:13:14,918 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:13:14,919 - main - INFO - Sent AI response to 5952524867
+2025-10-22 07:13:21,548 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:13:22,337 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:13:22,345 - main - INFO - Received message from 5952524867 (Tgshaitaan): ShaitaanAi
+2025-10-22 07:13:23,102 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendChatAction "HTTP/1.1 200 OK"
+2025-10-22 07:13:25,325 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-22 07:13:25,334 - main - INFO - ✅ API call successful. Tokens: 317 in + 54 out = 371 total
+2025-10-22 07:13:25,809 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:13:25,810 - main - INFO - Sent AI response to 5952524867
+2025-10-22 07:13:32,533 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:13:33,314 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:13:33,321 - main - INFO - Received message from 5952524867 (Tgshaitaan): ShaitaanAi
+2025-10-22 07:13:34,212 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendChatAction "HTTP/1.1 200 OK"
+2025-10-22 07:13:36,827 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-22 07:13:36,852 - main - INFO - ✅ API call successful. Tokens: 383 in + 68 out = 451 total
+2025-10-22 07:13:37,307 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:13:37,308 - main - INFO - Sent AI response to 5952524867
+2025-10-22 07:13:41,513 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:13:41,521 - main - INFO - Received message from 5952524867 (Tgshaitaan): ShaitaanAii
+2025-10-22 07:13:41,948 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendChatAction "HTTP/1.1 200 OK"
+2025-10-22 07:13:43,937 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-22 07:13:43,951 - main - INFO - ✅ API call successful. Tokens: 383 in + 80 out = 463 total
+2025-10-22 07:13:44,406 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:13:44,407 - main - INFO - Sent AI response to 5952524867
+2025-10-22 07:13:46,399 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:13:56,059 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:13:56,850 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:13:56,851 - main - INFO - User 5952524867 (Tgshaitaan) started the bot
+2025-10-22 07:13:58,537 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:13:58,922 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/answerCallbackQuery "HTTP/1.1 200 OK"
+2025-10-22 07:13:59,321 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/editMessageText "HTTP/1.1 200 OK"
+2025-10-22 07:14:00,818 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:14:01,216 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/answerCallbackQuery "HTTP/1.1 200 OK"
+2025-10-22 07:14:01,650 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/editMessageText "HTTP/1.1 200 OK"
+2025-10-22 07:14:05,831 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:14:05,839 - main - INFO - Received message from 5952524867 (Tgshaitaan): 24586002
+2025-10-22 07:14:06,595 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:14:10,295 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:14:10,302 - main - INFO - Received message from 5952524867 (Tgshaitaan): dd899a75e335d7f630e0dc8b4d11b7c7
+2025-10-22 07:14:10,728 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:14:20,489 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:14:20,677 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:14:20,684 - main - INFO - Received message from 5952524867 (Tgshaitaan): 917250382937
+2025-10-22 07:14:21,400 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:14:24,786 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:14:24,794 - main - INFO - Received message from 5952524867 (Tgshaitaan): ShaitaanAii
+2025-10-22 07:14:25,183 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:14:25,237 - pyrogram.session.auth - INFO - Start creating a new auth key on DC2
+2025-10-22 07:14:25,237 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-22 07:14:25,420 - pyrogram.connection.connection - INFO - Connected! Production DC2 - IPv4
+2025-10-22 07:14:27,538 - pyrogram.session.auth - INFO - Done auth key exchange: DhGenOk
+2025-10-22 07:14:27,538 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-22 07:14:27,546 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-22 07:14:27,732 - pyrogram.connection.connection - INFO - Connected! Production DC2 - IPv4
+2025-10-22 07:14:27,732 - pyrogram.session.session - INFO - NetworkTask started
+2025-10-22 07:14:28,533 - pyrogram.session.session - INFO - Session initialized: Layer 158
+2025-10-22 07:14:28,533 - pyrogram.session.session - INFO - Device: CPython 3.13.4 - Pyrogram 2.0.106
+2025-10-22 07:14:28,533 - pyrogram.session.session - INFO - System: Linux 6.8.0-1035-aws (en)
+2025-10-22 07:14:28,533 - pyrogram.session.session - INFO - Session started
+2025-10-22 07:14:28,535 - pyrogram.session.session - INFO - PingTask started
+2025-10-22 07:14:28,729 - pyrogram.session.session - INFO - PingTask stopped
+2025-10-22 07:14:28,730 - pyrogram.session.session - INFO - NetworkTask stopped
+2025-10-22 07:14:28,730 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-22 07:14:28,730 - pyrogram.session.session - INFO - Session stopped
+2025-10-22 07:14:28,736 - pyrogram.session.auth - INFO - Start creating a new auth key on DC5
+2025-10-22 07:14:28,736 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-22 07:14:28,740 - pyrogram.connection.connection - INFO - Connected! Production DC5 - IPv4
+2025-10-22 07:14:29,940 - pyrogram.session.auth - INFO - Done auth key exchange: DhGenOk
+2025-10-22 07:14:29,940 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-22 07:14:30,032 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-22 07:14:30,035 - pyrogram.connection.connection - INFO - Connected! Production DC5 - IPv4
+2025-10-22 07:14:30,035 - pyrogram.session.session - INFO - NetworkTask started
+2025-10-22 07:14:30,105 - pyrogram.session.session - INFO - Session initialized: Layer 158
+2025-10-22 07:14:30,105 - pyrogram.session.session - INFO - Device: CPython 3.13.4 - Pyrogram 2.0.106
+2025-10-22 07:14:30,105 - pyrogram.session.session - INFO - System: Linux 6.8.0-1035-aws (en)
+2025-10-22 07:14:30,105 - pyrogram.session.session - INFO - Session started
+2025-10-22 07:14:30,105 - pyrogram.session.session - INFO - PingTask started
+2025-10-22 07:14:30,362 - pyrogram.session.session - INFO - PingTask stopped
+2025-10-22 07:14:30,363 - pyrogram.session.session - INFO - NetworkTask stopped
+2025-10-22 07:14:30,363 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-22 07:14:30,363 - pyrogram.session.session - INFO - Session stopped
+2025-10-22 07:14:30,363 - pyrogram_auto_auth - INFO - ✅ OTP sent to +917250382937
+2025-10-22 07:14:30,374 - personal_account_autoreply - INFO - 📨 Received DM from Unknown (ID: 777000): Login code: 69850. Do not give this code to anyone
+2025-10-22 07:14:30,820 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-10-22 07:14:30,820 - personal_account_autoreply - WARNING - ⚠️ API key #1 is deactivated/invalid
+2025-10-22 07:14:30,845 - personal_account_autoreply - WARNING - 🔄 Rotated to API key #2 (Reason: account_deactivated)
+2025-10-22 07:14:30,845 - personal_account_autoreply - INFO - 🔄 Retrying with next API key (Attempt 2/17)...
+2025-10-22 07:14:31,169 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:14:31,170 - main - INFO - OTP requested for account #1 (+917250382937)
+2025-10-22 07:14:33,149 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-22 07:14:33,161 - personal_account_autoreply - INFO - ✅ Personal bot API call. Tokens: 137 in + 97 out = 234 total
+2025-10-22 07:14:33,219 - personal_account_autoreply - INFO - ✅ Sent AI response to Unknown
+2025-10-22 07:14:34,988 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:14:38,156 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:14:38,163 - main - INFO - Received message from 5952524867 (Tgshaitaan): 69850
+2025-10-22 07:14:39,066 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:14:39,134 - pyrogram.session.auth - INFO - Start creating a new auth key on DC2
+2025-10-22 07:14:39,135 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-22 07:14:39,321 - pyrogram.connection.connection - INFO - Connected! Production DC2 - IPv4
+2025-10-22 07:14:42,939 - pyrogram.session.auth - INFO - Done auth key exchange: DhGenOk
+2025-10-22 07:14:42,940 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-22 07:14:43,036 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-22 07:14:43,222 - pyrogram.connection.connection - INFO - Connected! Production DC2 - IPv4
+2025-10-22 07:14:43,222 - pyrogram.session.session - INFO - NetworkTask started
+2025-10-22 07:14:44,017 - pyrogram.session.session - INFO - Session initialized: Layer 158
+2025-10-22 07:14:44,017 - pyrogram.session.session - INFO - Device: CPython 3.13.4 - Pyrogram 2.0.106
+2025-10-22 07:14:44,017 - pyrogram.session.session - INFO - System: Linux 6.8.0-1035-aws (en)
+2025-10-22 07:14:44,017 - pyrogram.session.session - INFO - Session started
+2025-10-22 07:14:44,020 - pyrogram.session.session - INFO - PingTask started
+2025-10-22 07:14:44,215 - pyrogram_auto_auth - ERROR - ❌ Invalid or expired code for +917250382937: Telegram says: [400 PHONE_CODE_EXPIRED] - The confirmation code has expired (caused by "auth.SignIn")
+2025-10-22 07:14:44,216 - pyrogram.session.session - INFO - PingTask stopped
+2025-10-22 07:14:44,216 - pyrogram.session.session - INFO - NetworkTask stopped
+2025-10-22 07:14:44,216 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-22 07:14:44,216 - pyrogram.session.session - INFO - Session stopped
+2025-10-22 07:14:45,542 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:14:45,543 - main - INFO - OTP expired for account #1 (+917250382937) - user prompted to resend
+2025-10-22 07:14:48,393 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
