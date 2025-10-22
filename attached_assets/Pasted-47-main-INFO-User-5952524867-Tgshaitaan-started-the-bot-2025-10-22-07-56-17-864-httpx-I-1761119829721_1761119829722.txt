@@ -1,0 +1,94 @@
+47 - main - INFO - User 5952524867 (Tgshaitaan) started the bot
+2025-10-22 07:56:17,864 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:56:18,248 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/answerCallbackQuery "HTTP/1.1 200 OK"
+2025-10-22 07:56:18,648 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/editMessageText "HTTP/1.1 200 OK"
+2025-10-22 07:56:19,960 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:56:20,369 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/answerCallbackQuery "HTTP/1.1 200 OK"
+2025-10-22 07:56:20,767 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/editMessageText "HTTP/1.1 200 OK"
+2025-10-22 07:56:23,790 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:56:23,804 - main - INFO - Received message from 5952524867 (Tgshaitaan): 24586002
+2025-10-22 07:56:24,223 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:56:26,597 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:56:26,609 - main - INFO - Received message from 5952524867 (Tgshaitaan): dd899a75e335d7f630e0dc8b4d11b7c7
+2025-10-22 07:56:27,016 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+==> Detected service running on port 10000
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+2025-10-22 07:56:35,859 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:56:35,884 - main - INFO - Received message from 5952524867 (Tgshaitaan): 917250382937
+2025-10-22 07:56:36,685 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:56:40,159 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:56:40,279 - main - INFO - Received message from 5952524867 (Tgshaitaan): ShaitaanAi
+2025-10-22 07:56:41,363 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:56:42,206 - pyrogram.session.auth - INFO - Start creating a new auth key on DC2
+2025-10-22 07:56:42,207 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-22 07:56:42,394 - pyrogram.connection.connection - INFO - Connected! Production DC2 - IPv4
+2025-10-22 07:56:44,347 - pyrogram.session.auth - INFO - Done auth key exchange: DhGenOk
+2025-10-22 07:56:44,348 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-22 07:56:44,450 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-22 07:56:44,635 - pyrogram.connection.connection - INFO - Connected! Production DC2 - IPv4
+2025-10-22 07:56:44,636 - pyrogram.session.session - INFO - NetworkTask started
+2025-10-22 07:56:45,441 - pyrogram.session.session - INFO - Session initialized: Layer 158
+2025-10-22 07:56:45,441 - pyrogram.session.session - INFO - Device: CPython 3.13.4 - Pyrogram 2.0.106
+2025-10-22 07:56:45,441 - pyrogram.session.session - INFO - System: Linux 6.8.0-1035-aws (en)
+2025-10-22 07:56:45,441 - pyrogram.session.session - INFO - Session started
+2025-10-22 07:56:45,443 - pyrogram.session.session - INFO - PingTask started
+2025-10-22 07:56:45,641 - pyrogram.session.session - INFO - PingTask stopped
+2025-10-22 07:56:45,642 - pyrogram.session.session - INFO - NetworkTask stopped
+2025-10-22 07:56:45,642 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-22 07:56:45,642 - pyrogram.session.session - INFO - Session stopped
+2025-10-22 07:56:45,660 - pyrogram.session.auth - INFO - Start creating a new auth key on DC5
+2025-10-22 07:56:45,660 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-22 07:56:45,663 - pyrogram.connection.connection - INFO - Connected! Production DC5 - IPv4
+2025-10-22 07:56:46,651 - pyrogram.session.auth - INFO - Done auth key exchange: DhGenOk
+2025-10-22 07:56:46,652 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-22 07:56:46,759 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-22 07:56:46,763 - pyrogram.connection.connection - INFO - Connected! Production DC5 - IPv4
+2025-10-22 07:56:46,763 - pyrogram.session.session - INFO - NetworkTask started
+2025-10-22 07:56:46,833 - pyrogram.session.session - INFO - Session initialized: Layer 158
+2025-10-22 07:56:46,833 - pyrogram.session.session - INFO - Device: CPython 3.13.4 - Pyrogram 2.0.106
+2025-10-22 07:56:46,834 - pyrogram.session.session - INFO - System: Linux 6.8.0-1035-aws (en)
+2025-10-22 07:56:46,834 - pyrogram.session.session - INFO - Session started
+2025-10-22 07:56:46,834 - pyrogram.session.session - INFO - PingTask started
+2025-10-22 07:56:47,098 - pyrogram.session.session - INFO - PingTask stopped
+2025-10-22 07:56:47,098 - pyrogram.session.session - INFO - NetworkTask stopped
+2025-10-22 07:56:47,098 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-22 07:56:47,098 - pyrogram.session.session - INFO - Session stopped
+2025-10-22 07:56:47,098 - pyrogram_auto_auth - INFO - ✅ OTP sent to +917250382937
+2025-10-22 07:56:47,098 - pyrogram_auto_auth - INFO - 📝 Phone code hash: a4759a29db0aa6ef3b...
+2025-10-22 07:56:47,098 - pyrogram_auto_auth - INFO - ⏰ Code valid for 5 minutes - enter it ASAP!
+2025-10-22 07:56:47,125 - personal_account_autoreply - INFO - 📨 Received DM from Unknown (ID: 777000): Login code: 23830. Do not give this code to anyone
+2025-10-22 07:56:47,507 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-10-22 07:56:47,509 - personal_account_autoreply - WARNING - ⚠️ API key #1 is deactivated/invalid
+2025-10-22 07:56:47,641 - personal_account_autoreply - WARNING - 🔄 Rotated to API key #2 (Reason: account_deactivated)
+2025-10-22 07:56:47,642 - personal_account_autoreply - INFO - 🔄 Retrying with next API key (Attempt 2/17)...
+2025-10-22 07:56:48,091 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:56:48,092 - main - INFO - OTP requested for account #1 (+917250382937)
+2025-10-22 07:56:49,726 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-22 07:56:49,741 - personal_account_autoreply - INFO - ✅ Personal bot API call. Tokens: 137 in + 82 out = 219 total
+2025-10-22 07:56:49,776 - personal_account_autoreply - INFO - ✅ Sent AI response to Unknown
+2025-10-22 07:56:50,488 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:56:53,309 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 07:56:53,314 - main - INFO - Received message from 5952524867 (Tgshaitaan): 23830
+2025-10-22 07:56:54,097 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:56:54,144 - pyrogram.session.auth - INFO - Start creating a new auth key on DC2
+2025-10-22 07:56:54,144 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-22 07:56:54,326 - pyrogram.connection.connection - INFO - Connected! Production DC2 - IPv4
+2025-10-22 07:56:56,248 - pyrogram.session.auth - INFO - Done auth key exchange: DhGenOk
+2025-10-22 07:56:56,248 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-22 07:56:56,345 - pyrogram.connection.connection - INFO - Connecting...
+2025-10-22 07:56:56,532 - pyrogram.connection.connection - INFO - Connected! Production DC2 - IPv4
+2025-10-22 07:56:56,532 - pyrogram.session.session - INFO - NetworkTask started
+2025-10-22 07:56:57,329 - pyrogram.session.session - INFO - Session initialized: Layer 158
+2025-10-22 07:56:57,329 - pyrogram.session.session - INFO - Device: CPython 3.13.4 - Pyrogram 2.0.106
+2025-10-22 07:56:57,330 - pyrogram.session.session - INFO - System: Linux 6.8.0-1035-aws (en)
+2025-10-22 07:56:57,330 - pyrogram.session.session - INFO - Session started
+2025-10-22 07:56:57,332 - pyrogram_auto_auth - INFO - 🔐 Attempting sign-in for +917250382937 with code: 23830
+2025-10-22 07:56:57,332 - pyrogram_auto_auth - INFO - 📝 Using phone_code_hash: a4759a29db0aa6ef3b...
+2025-10-22 07:56:57,333 - pyrogram.session.session - INFO - PingTask started
+2025-10-22 07:56:57,528 - pyrogram_auto_auth - ERROR - ❌ Code expired for +917250382937: Telegram says: Telegram says: [400 PHONE_CODE_EXPIRED] - The confirmation code has expired (caused by "auth.SignIn")
+2025-10-22 07:56:57,528 - pyrogram.session.session - INFO - PingTask stopped
+2025-10-22 07:56:57,528 - pyrogram.session.session - INFO - NetworkTask stopped
+2025-10-22 07:56:57,528 - pyrogram.connection.connection - INFO - Disconnected
+2025-10-22 07:56:57,528 - pyrogram.session.session - INFO - Session stopped
+2025-10-22 07:56:57,934 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 07:56:57,936 - main - INFO - OTP expired for account #1 (+917250382937) - user prompted to resend
