@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "python-3.12", "web"]
+modules = ["nodejs-20", "web", "python-3.11"]
 
 [agent]
 stack = "AGENT_STACK"
@@ -7,7 +7,7 @@ expertMode = true
 
 [nix]
 channel = "stable-25_05"
-packages = ["jq", "ffmpeg"]
+packages = ["ffmpeg", "ffmpeg-full", "jq"]
 
 [env]
 MASTRA_HIDE_CLOUD_CTA = "true"

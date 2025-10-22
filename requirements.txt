@@ -8,3 +8,14 @@ yt-dlp
 aiofiles
 aiohttp
 ffmpeg-python
+aiofiles
+aiohttp
+ffmpeg-python
+flask==3.0.0
+openai==1.58.1
+py-tgcalls
+pyrogram
+python-telegram-bot==21.0.1
+telegram
+tgcrypto
+yt-dlp
