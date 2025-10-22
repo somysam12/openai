@@ -92,67 +92,88 @@ class PyrogramAuthenticator:
             return False, f"Authentication failed: {str(e)}"
     
     async def request_code_only(self, phone: str, api_id: int, api_hash: str):
-        """Request OTP code (first step)"""
+        """Request OTP code (first step) - Uses persistent session to avoid reconnection issues"""
         try:
-            session_name = f"temp_{phone}"
+            session_name = f"temp_auth_{phone.replace('+', '')}"
             
             app = Client(
                 session_name,
                 api_id=api_id,
                 api_hash=api_hash,
-                phone_number=f"+{phone}",
-                in_memory=True
+                phone_number=f"+{phone}"
             )
             
             await app.connect()
+            
             sent_code = await app.send_code(f"+{phone}")
+            phone_code_hash = sent_code.phone_code_hash
+            
             await app.disconnect()
             
             logger.info(f"✅ OTP sent to +{phone}")
-            return True, sent_code.phone_code_hash
+            logger.info(f"📝 Phone code hash: {phone_code_hash[:20]}...")
+            logger.info(f"⏰ Code valid for 5 minutes - enter it ASAP!")
+            
+            return True, phone_code_hash
         
         except Exception as e:
             logger.error(f"❌ Failed to send OTP: {e}")
             return False, str(e)
     
     async def authenticate_account_with_hash(self, account_id: int, phone: str, api_id: int, api_hash: str, code: str, phone_code_hash: str):
-        """Authenticate a Pyrogram account using provided OTP and phone_code_hash"""
+        """Authenticate a Pyrogram account using provided OTP and phone_code_hash - Reuses existing session"""
+        import os
         try:
-            session_name = f"account_{account_id}_{phone}"
+            session_name = f"temp_auth_{phone.replace('+', '')}"
+            
+            if not os.path.exists(f"{session_name}.session"):
+                logger.warning(f"⚠️ Temp session file not found for +{phone}, creating new connection...")
+                session_name = f"account_{account_id}_{phone}"
             
             app = Client(
                 session_name,
                 api_id=api_id,
                 api_hash=api_hash,
-                phone_number=f"+{phone}",
-                in_memory=True
+                phone_number=f"+{phone}"
             )
             
             await app.connect()
             
-            # Sign in with provided code and phone_code_hash
+            logger.info(f"🔐 Attempting sign-in for +{phone} with code: {code}")
+            logger.info(f"📝 Using phone_code_hash: {phone_code_hash[:20]}...")
+            
             try:
                 signed_in = await app.sign_in(f"+{phone}", phone_code_hash, code)
                 logger.info(f"✅ Successfully authenticated +{phone}")
+                
+                session_string = await app.export_session_string()
+                
+                self.update_account_session(account_id, session_string, 1, None)
+                
+                await app.disconnect()
+                logger.info(f"✅ Session saved for account #{account_id}")
+                
+                try:
+                    if os.path.exists(f"{session_name}.session"):
+                        os.remove(f"{session_name}.session")
+                        logger.info(f"🗑️ Cleaned up temp session file")
+                except:
+                    pass
+                
+                return True, "Successfully authenticated and session saved!"
+                
             except SessionPasswordNeeded:
                 logger.error(f"❌ 2FA enabled for +{phone}. Please disable 2FA first!")
                 await app.disconnect()
-                return False, "2FA enabled. Please disable 2FA and try again."
-            except (PhoneCodeInvalid, PhoneCodeExpired) as e:
-                logger.error(f"❌ Invalid or expired code for +{phone}: {e}")
+                return False, "2FA enabled. Please disable 2FA temporarily and try again."
+            except PhoneCodeExpired as e:
+                logger.error(f"❌ Code expired for +{phone}: Telegram says: {e}")
                 await app.disconnect()
-                return False, f"Invalid or expired OTP code: {str(e)}"
-            
-            # Export session string
-            session_string = await app.export_session_string()
-            
-            # Save to database
-            self.update_account_session(account_id, session_string, 1, None)
-            
-            await app.disconnect()
-            logger.info(f"✅ Session saved for account #{account_id}")
-            
-            return True, "Successfully authenticated and session saved!"
+                return False, f"Telegram says: {str(e)}"
+            except PhoneCodeInvalid as e:
+                logger.error(f"❌ Invalid code for +{phone}: Telegram says: {e}")
+                await app.disconnect()
+                return False, f"Telegram says: {str(e)}"
         
         except Exception as e:
             logger.error(f"❌ Authentication failed: {e}")
