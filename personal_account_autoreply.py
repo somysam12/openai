@@ -592,6 +592,9 @@ class PersonalAccountBot:
         
         # Get song query from command or parameter
         if not query:
+            if not message.text:
+                await message.reply_text("❌ Song ka naam ya link bataiye!\n\nExample: /play Arijit Singh songs")
+                return
             query_parts = message.text.split(maxsplit=1)
             if len(query_parts) < 2:
                 await message.reply_text("❌ Song ka naam ya link bataiye!\n\nExample: /play Arijit Singh songs")
