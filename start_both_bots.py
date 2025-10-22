@@ -138,18 +138,15 @@ def run_music_bot():
 
 if __name__ == '__main__':
     logger.info("🚀 COMBINED BOT RUNNER STARTING...")
-    logger.info("This will run all bots simultaneously: Main Bot, Personal Bot, and Music Bot")
+    logger.info("This will run all bots simultaneously: Main Bot and Personal Bot (with Music)")
     logger.info("")
     
-    # Start music bot in background thread (daemon)
-    music_thread = threading.Thread(
-        target=run_music_bot,
-        daemon=True,
-        name="MusicBotThread"
-    )
-    music_thread.start()
+    # MUSIC BOT IS NOW INTEGRATED INTO PERSONAL BOT - No need for standalone music thread
+    # Standalone music_bot.py is disabled to avoid session file conflicts
+    # Personal bot now includes all music playback features via PyTgCalls
     
     # Start personal bot in background thread (daemon)
+    # Personal bot now includes music playback (PyTgCalls) + DM auto-replies
     # Daemon thread will automatically stop when main thread stops
     personal_thread = threading.Thread(
         target=run_personal_bot,
