@@ -1,0 +1,43 @@
+info
+2025-10-22 10:26:37,049 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 10:26:37,053 - main - INFO - Received message from 5952524867 (Tgshaitaan): @TGSHAITAANBOT play song last christmas
+2025-10-22 10:26:37,670 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getMe "HTTP/1.1 200 OK"
+2025-10-22 10:26:38,129 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendChatAction "HTTP/1.1 200 OK"
+2025-10-22 10:26:38,592 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+2025-10-22 10:26:38,594 - main - WARNING - ⚠️ API key #1 - Account deactivated (401)
+2025-10-22 10:26:38,598 - main - WARNING - 🔴 API key #1 marked as deactivated: account_deactivated
+2025-10-22 10:26:38,750 - main - WARNING - 🔄 Rotated to API key #2 (out of 17 keys)
+2025-10-22 10:26:38,750 - main - INFO - 🔄 Rotating due to account_deactivated. Retrying with API key #2...
+2025-10-22 10:26:39,597 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-22 10:26:39,598 - main - WARNING - ⚠️ API key #2 - Rate limit (429)
+2025-10-22 10:26:39,654 - main - WARNING - 🔄 Rotated to API key #3 (out of 17 keys)
+2025-10-22 10:26:39,654 - main - INFO - 🔄 Rotating due to rate_limit. Retrying with API key #3...
+2025-10-22 10:26:40,433 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2025-10-22 10:26:40,433 - main - WARNING - ⚠️ API key #3 - Rate limit (429)
+2025-10-22 10:26:40,460 - main - WARNING - 🔄 Rotated to API key #4 (out of 17 keys)
+2025-10-22 10:26:40,460 - main - INFO - 🔄 Rotating due to rate_limit. Retrying with API key #4...
+2025-10-22 10:26:42,615 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-22 10:26:42,625 - main - INFO - ✅ API call successful. Tokens: 206 in + 67 out = 273 total
+2025-10-22 10:26:43,190 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 10:26:43,191 - main - INFO - Sent AI response to 5952524867
+2025-10-22 10:26:47,303 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 10:26:57,562 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 10:27:07,806 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 10:27:18,054 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 10:27:19,018 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 10:27:19,982 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/sendMessage "HTTP/1.1 200 OK"
+2025-10-22 10:27:19,983 - main - INFO - User 5952524867 (Tgshaitaan) started the bot
+2025-10-22 10:27:25,854 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 10:27:26,673 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/answerCallbackQuery "HTTP/1.1 200 OK"
+2025-10-22 10:27:27,125 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/editMessageText "HTTP/1.1 200 OK"
+2025-10-22 10:27:33,766 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 10:27:34,649 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/answerCallbackQuery "HTTP/1.1 200 OK"
+2025-10-22 10:27:35,170 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/editMessageText "HTTP/1.1 200 OK"
+2025-10-22 10:27:36,341 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 10:27:36,725 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/answerCallbackQuery "HTTP/1.1 200 OK"
+2025-10-22 10:27:37,215 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/editMessageText "HTTP/1.1 200 OK"
+2025-10-22 10:27:38,093 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 10:27:38,509 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/answerCallbackQuery "HTTP/1.1 200 OK"
+2025-10-22 10:27:39,002 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/editMessageText "HTTP/1.1 200 OK"
+2025-10-22 10:27:48,344 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
+2025-10-22 10:27:48,704 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8267153211:AAFerALUX1go-O3HcNJJ1nOTAUqE3elLOR0/getUpdates "HTTP/1.1 200 OK"
