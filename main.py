@@ -2314,6 +2314,118 @@ class TelegramChatBot:
             self.admin_state[user_id] = f"waiting_account_knowledge_delete:{account_id}"
             await query.edit_message_text(text, parse_mode='Markdown')
         
+        elif data.startswith("pyrogram_resend_otp:"):
+            account_id = int(data.split(":")[1])
+            
+            # Get account details
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('SELECT phone_number, api_id, api_hash FROM pyrogram_accounts WHERE id = ?', (account_id,))
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result:
+                await query.answer("❌ Account not found!")
+                return
+            
+            phone, api_id, api_hash = result
+            
+            # Validate current state exists and belongs to this account
+            import time
+            current_state = self.admin_state.get(user_id, "")
+            old_timestamp = 0
+            retry_count = 0
+            
+            if current_state.startswith("waiting_pyrogram_otp:"):
+                parts = current_state.split(":", 1)[1].split("|||")
+                state_account_id = int(parts[0])
+                
+                # Verify state belongs to this account
+                if state_account_id != account_id:
+                    await query.answer("❌ State mismatch! Please start over.", show_alert=True)
+                    await query.edit_message_text(
+                        f"❌ *Session Error*\n\n"
+                        f"The OTP session doesn't match this account.\n\n"
+                        f"Please start over by adding the account again.",
+                        reply_markup=self.get_admin_keyboard(),
+                        parse_mode='Markdown'
+                    )
+                    if user_id in self.admin_state:
+                        del self.admin_state[user_id]
+                    return
+                
+                old_timestamp = int(parts[5]) if len(parts) > 5 else 0
+                retry_count = int(parts[6]) if len(parts) > 6 else 0
+                current_time = int(time.time())
+                time_since_last_otp = current_time - old_timestamp
+                
+                # Enforce 60-second cooldown
+                if time_since_last_otp < 60:
+                    remaining = 60 - time_since_last_otp
+                    await query.answer(f"⏳ Wait {remaining}s before requesting new code", show_alert=True)
+                    return
+                
+                # Limit to 3 retries
+                if retry_count >= 3:
+                    await query.edit_message_text(
+                        f"❌ *Too Many OTP Requests!*\n\n"
+                        f"You've requested OTP 3 times already.\n\n"
+                        f"Please wait a few minutes and try adding the account again from the Pyrogram Manager.",
+                        reply_markup=self.get_admin_keyboard(),
+                        parse_mode='Markdown'
+                    )
+                    del self.admin_state[user_id]
+                    return
+            else:
+                # No valid state exists - user needs to start over
+                await query.answer("❌ No active OTP session!", show_alert=True)
+                await query.edit_message_text(
+                    f"❌ *No Active Session*\n\n"
+                    f"Your OTP session has expired or was cancelled.\n\n"
+                    f"Please start over by adding the account again from the Pyrogram Manager.",
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='Markdown'
+                )
+                return
+            
+            # Request new OTP
+            from pyrogram_auto_auth import PyrogramAuthenticator
+            authenticator = PyrogramAuthenticator(self.db_path)
+            
+            await query.edit_message_text(
+                f"📤 Sending fresh OTP to +{phone}...\n\nPlease wait...",
+                parse_mode='Markdown'
+            )
+            
+            success, new_phone_code_hash = await authenticator.request_code_only(phone, int(api_id), api_hash)
+            
+            if success:
+                otp_timestamp = int(time.time())
+                new_retry_count = retry_count + 1
+                self.admin_state[user_id] = f"waiting_pyrogram_otp:{account_id}|||{phone}|||{api_id}|||{api_hash}|||{new_phone_code_hash}|||{otp_timestamp}|||{new_retry_count}"
+                
+                await query.edit_message_text(
+                    f"✅ *Fresh OTP Sent!*\n\n"
+                    f"📩 A new login code has been sent to +{phone}\n\n"
+                    f"*Send the NEW OTP code here*\n"
+                    f"*Example:* 12345\n\n"
+                    f"⏱️ *Code is valid for 5 minutes*\n"
+                    f"⚠️ This is retry #{new_retry_count}/3\n\n"
+                    f"Send /cancel to cancel.",
+                    parse_mode='Markdown'
+                )
+                logger.info(f"Resent OTP for account #{account_id} (+{phone}) - retry #{new_retry_count}/3")
+            else:
+                await query.edit_message_text(
+                    f"❌ *Failed to send OTP!*\n\n"
+                    f"Error: {new_phone_code_hash}\n\n"
+                    f"Please try again later or check your API credentials.",
+                    reply_markup=self.get_admin_keyboard(),
+                    parse_mode='Markdown'
+                )
+                if user_id in self.admin_state:
+                    del self.admin_state[user_id]
+        
         elif data == "admin_refresh":
             await query.edit_message_text(
                 "🔐 *Admin Control Panel*\n\n"
@@ -2835,15 +2947,19 @@ class TelegramChatBot:
                     success, phone_code_hash = await authenticator.request_code_only(phone, int(api_id), api_hash)
                     
                     if success:
-                        self.admin_state[user.id] = f"waiting_pyrogram_otp:{account_id}|||{phone}|||{api_id}|||{api_hash}|||{phone_code_hash}"
+                        import time
+                        otp_timestamp = int(time.time())
+                        retry_count = 0
+                        self.admin_state[user.id] = f"waiting_pyrogram_otp:{account_id}|||{phone}|||{api_id}|||{api_hash}|||{phone_code_hash}|||{otp_timestamp}|||{retry_count}"
                         await update.message.reply_text(
                             f"✅ *OTP Sent Successfully!*\n\n"
                             f"Step 5/5: Check your Telegram app on +{phone}\n\n"
                             f"📩 You should have received a login code.\n\n"
                             f"*Send the OTP code here*\n"
                             f"*Example:* 12345\n\n"
-                            f"⚠️ Code expires in ~2 minutes! Enter it quickly.\n"
-                            f"💡 If it expires, I'll automatically send you a new one.\n\n"
+                            f"⏱️ *Code is valid for 5 minutes*\n"
+                            f"⚠️ Don't request multiple codes - it will invalidate the previous one!\n\n"
+                            f"If the code expires, use the button below to request a new one.\n\n"
                             f"Send /cancel to cancel.",
                             parse_mode='Markdown'
                         )
@@ -2882,6 +2998,8 @@ class TelegramChatBot:
                 api_id = parts[2]
                 api_hash = parts[3]
                 phone_code_hash = parts[4]
+                otp_timestamp = int(parts[5]) if len(parts) > 5 else 0
+                retry_count = int(parts[6]) if len(parts) > 6 else 0
                 otp_code = user_message.strip()
                 
                 if not otp_code.isdigit() or len(otp_code) != 5:
@@ -2925,41 +3043,53 @@ class TelegramChatBot:
                         )
                         logger.info(f"Admin {user.id} successfully authenticated Pyrogram account #{account_id}")
                     else:
-                        # Check if code expired, if yes, automatically request a new code
+                        # Check if code expired or invalid
+                        import time
+                        current_time = int(time.time())
+                        time_since_otp = current_time - otp_timestamp if otp_timestamp > 0 else 0
+                        
                         if "PHONE_CODE_EXPIRED" in message or "expired" in message.lower():
+                            # OTP expired - give user options
+                            keyboard = [
+                                [InlineKeyboardButton("🔄 Resend OTP", callback_data=f"pyrogram_resend_otp:{account_id}")],
+                                [InlineKeyboardButton("❌ Cancel", callback_data="admin_pyrogram_manager")]
+                            ]
+                            
                             await update.message.reply_text(
                                 f"⏰ *OTP Code Expired!*\n\n"
-                                f"Don't worry, I'm sending you a fresh code...",
+                                f"The code you entered has expired ({time_since_otp}s old).\n\n"
+                                f"💡 *What to do:*\n"
+                                f"• Click 'Resend OTP' below to get a fresh code\n"
+                                f"• The new code will be valid for 5 minutes\n"
+                                f"• Enter it immediately when you receive it\n\n"
+                                f"⚠️ *Important:* Don't request multiple codes quickly - each new request invalidates the previous code!",
+                                reply_markup=InlineKeyboardMarkup(keyboard),
                                 parse_mode='Markdown'
                             )
+                            logger.info(f"OTP expired for account #{account_id} (+{phone}) - user prompted to resend")
+                        
+                        elif "PHONE_CODE_INVALID" in message or "invalid" in message.lower():
+                            # Invalid code - let user try again or resend
+                            keyboard = [
+                                [InlineKeyboardButton("🔄 Resend OTP", callback_data=f"pyrogram_resend_otp:{account_id}")],
+                                [InlineKeyboardButton("❌ Cancel", callback_data="admin_pyrogram_manager")]
+                            ]
                             
-                            # Request a new code
-                            new_success, new_phone_code_hash = await authenticator.request_code_only(phone, int(api_id), api_hash)
-                            
-                            if new_success:
-                                # Update the state with new hash
-                                self.admin_state[user.id] = f"waiting_pyrogram_otp:{account_id}|||{phone}|||{api_id}|||{api_hash}|||{new_phone_code_hash}"
-                                await update.message.reply_text(
-                                    f"✅ *New OTP Code Sent!*\n\n"
-                                    f"📩 A fresh login code has been sent to +{phone}\n\n"
-                                    f"*Please send the NEW code here*\n"
-                                    f"*Example:* 12345\n\n"
-                                    f"⚠️ Please enter it quickly this time (expires in ~2 minutes)\n\n"
-                                    f"Send /cancel to cancel.",
-                                    parse_mode='Markdown'
-                                )
-                                logger.info(f"Resent OTP for account #{account_id} (+{phone}) after expiration")
-                            else:
-                                await update.message.reply_text(
-                                    f"❌ *Failed to resend OTP!*\n\n"
-                                    f"Error: {new_phone_code_hash}\n\n"
-                                    f"Please try adding the account again from the Pyrogram Manager.",
-                                    reply_markup=self.get_admin_keyboard(),
-                                    parse_mode='Markdown'
-                                )
-                                del self.admin_state[user.id]
+                            await update.message.reply_text(
+                                f"❌ *Invalid OTP Code!*\n\n"
+                                f"The code you entered doesn't match.\n\n"
+                                f"💡 *What to do:*\n"
+                                f"• Check the code in your Telegram app\n"
+                                f"• Send the correct 5-digit code\n"
+                                f"• Or click 'Resend OTP' for a fresh code\n\n"
+                                f"Send /cancel to cancel.",
+                                reply_markup=InlineKeyboardMarkup(keyboard),
+                                parse_mode='Markdown'
+                            )
+                            logger.info(f"Invalid OTP for account #{account_id} (+{phone})")
+                        
                         else:
-                            # Other errors (2FA, invalid code, etc.)
+                            # Other errors (2FA, etc.)
                             await update.message.reply_text(
                                 f"❌ *Authentication Failed!*\n\n"
                                 f"Error: {message}\n\n"
